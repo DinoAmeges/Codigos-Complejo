@@ -39,7 +39,7 @@ st.markdown("""
 
     /* Tarjetas */
     .titan-card {
-        background: rgba(17, 17, 17, 0.9);
+        background: rgba(17, 17, 17, 0.95);
         border: 1px solid #333;
         border-top: 2px solid var(--accent);
         border-radius: 8px;
@@ -169,7 +169,6 @@ def extract_smart_data(sender, subject, text_body, html_body):
 
     # 3. Extracción de CÓDIGOS NUMÉRICOS
     # Busca códigos de 4 a 6 dígitos (ej: 1234, 123456)
-    # Evita capturar años como "2024" si es posible, pero regex simple suele funcionar bien en correos transaccionales
     code_match = re.search(r'\b\d{4,6}\b', text_body)
     if code_match:
         return code_match.group(0), "CÓDIGO 🔢", platform
@@ -200,13 +199,27 @@ def toggle():
 # --- UI LAYOUT ---
 with st.sidebar:
     st.title("ROYPLAY API CORE")
-    st.caption("v6.0 Titanium Edition")
+    st.caption("v6.1 Titanium (Updated)")
     st.markdown("---")
     
     st.markdown("### 👤 CUENTA")
     col_u, col_d = st.columns([2, 1])
     st.session_state.user_input = col_u.text_input("Usuario", placeholder="ej: cine1")
-    st.session_state.domain_input = col_d.selectbox("Dominio", ["1secmail.com", "1secmail.net", "1secmail.org", "wwjmz.com", "esiix.com"])
+    
+    # LISTA DE DOMINIOS ACTUALIZADA INCLUYENDO GYMZZ.COM
+    dominios_disponibles = [
+        "gymzz.com",        # Solicitado
+        "1secmail.com",
+        "1secmail.net",
+        "1secmail.org",
+        "wwjmz.com",
+        "esiix.com",
+        "vardns.com",
+        "yoggm.com",
+        "vjuum.com",
+        "laori.com"
+    ]
+    st.session_state.domain_input = col_d.selectbox("Dominio", dominios_disponibles)
     
     st.markdown("---")
     st.markdown("### 🧬 PLATAFORMAS")
