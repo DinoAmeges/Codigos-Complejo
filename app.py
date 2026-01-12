@@ -6,335 +6,339 @@ import re
 import random
 from datetime import datetime
 from bs4 import BeautifulSoup
+from fake_useragent import UserAgent
 
-# --- CONFIGURACIÓN DE PÁGINA (FULL WIDTH) ---
+# --- CONFIGURACIÓN PRINCIPAL ---
 st.set_page_config(
-    page_title="RoyPlay Monitor Enterprise",
-    page_icon="🛡️",
+    page_title="RoyPlay Titanium Monitor",
+    page_icon="💎",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- CSS PROFESIONAL (GLASSMORPHISM & NEON) ---
+# --- CSS "TITANIUM" (DISEÑO PRO) ---
 st.markdown("""
     <style>
-    /* Tipografía */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Inter:wght@400;600&display=swap');
     
     :root {
-        --bg-color: #09090b;
-        --card-bg: rgba(255, 255, 255, 0.03);
-        --border-color: rgba(255, 255, 255, 0.1);
-        --accent-color: #00f2ea; /* Cian Neón */
-        --success-color: #00ff9d;
-        --text-primary: #ffffff;
-        --text-secondary: #a1a1aa;
+        --bg-dark: #050505;
+        --card-bg: #0a0a0a;
+        --border: #1f1f1f;
+        --neon-blue: #00f3ff;
+        --neon-purple: #bc13fe;
+        --success: #00ff9d;
     }
 
     .stApp {
-        background-color: var(--bg-color);
+        background-color: var(--bg-dark);
         background-image: 
-            radial-gradient(at 0% 0%, rgba(0, 242, 234, 0.05) 0px, transparent 50%),
-            radial-gradient(at 100% 100%, rgba(37, 99, 235, 0.05) 0px, transparent 50%);
+            linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+        background-size: 30px 30px;
         font-family: 'Inter', sans-serif;
     }
 
-    /* Tarjetas Glassmorphism */
-    .glass-card {
-        background: var(--card-bg);
-        border: 1px solid var(--border-color);
-        backdrop-filter: blur(12px);
-        border-radius: 16px;
+    /* Títulos */
+    h1, h2, h3 { font-family: 'Rajdhani', sans-serif; text-transform: uppercase; }
+    
+    /* Tarjetas Glass */
+    .titan-card {
+        background: rgba(10, 10, 10, 0.7);
+        border: 1px solid var(--border);
+        border-top: 1px solid #333;
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
         padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        margin-bottom: 15px;
     }
 
     /* Métricas */
     div[data-testid="stMetric"] {
-        background: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 15px;
-        transition: transform 0.2s;
-    }
-    div[data-testid="stMetric"]:hover {
-        transform: translateY(-2px);
-        border-color: var(--accent-color);
-    }
-
-    /* Botones */
-    div.stButton > button {
-        width: 100%;
+        background: #0f0f0f;
+        border: 1px solid #222;
+        border-left: 3px solid var(--neon-blue);
         border-radius: 8px;
-        font-weight: 600;
-        border: none;
-        transition: all 0.3s ease;
+        padding: 10px;
     }
-    
-    /* Botón Primario (Start) */
+    div[data-testid="stMetricLabel"] { color: #666; font-size: 0.8rem; }
+    div[data-testid="stMetricValue"] { color: #fff; font-family: 'Rajdhani'; }
+
+    /* Botón Start */
     div.stButton > button:first-child {
-        background: linear-gradient(135deg, #2563eb 0%, #00f2ea 100%);
+        background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+        border: none;
         color: #000;
         font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border-radius: 4px;
+        height: 50px;
+        transition: 0.3s;
     }
     div.stButton > button:first-child:hover {
-        box-shadow: 0 0 20px rgba(0, 242, 234, 0.4);
+        box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+        transform: scale(1.01);
     }
 
-    /* Terminal Logs */
-    .terminal-window {
-        font-family: 'JetBrains Mono', monospace;
+    /* Terminal */
+    .console {
+        font-family: 'Courier New', monospace;
         background: #000;
-        border: 1px solid #333;
-        border-radius: 8px;
+        border: 1px solid #222;
         padding: 15px;
-        height: 250px;
+        height: 200px;
         overflow-y: auto;
-        font-size: 12px;
-        color: #00ff9d;
+        font-size: 11px;
+        color: #0f0;
+        border-radius: 6px;
     }
-    .log-entry { margin-bottom: 4px; border-bottom: 1px solid #111; padding-bottom: 2px; }
-    .log-time { color: #666; margin-right: 8px; }
+    .log-line { border-bottom: 1px solid #111; padding: 2px 0; }
+    .log-err { color: #ff4444; }
+    .log-succ { color: var(--neon-blue); font-weight: bold; }
 
-    /* Inputs */
-    .stTextInput input {
-        background: rgba(0,0,0,0.3) !important;
-        border: 1px solid var(--border-color) !important;
-        color: white !important;
-        border-radius: 8px !important;
+    /* Alerta de Resultado */
+    .result-box {
+        background: rgba(0, 255, 157, 0.05);
+        border: 1px solid var(--success);
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 10px;
+        animation: flash 1s;
     }
+    @keyframes flash { 0% { opacity: 0; } 100% { opacity: 1; } }
     </style>
     """, unsafe_allow_html=True)
 
-# --- CLASE SCRAPER PROFESIONAL ---
-class YopScraper:
+# --- MOTOR DE SCRAPING MEJORADO ---
+class YopmailEngine:
     def __init__(self):
         self.session = requests.Session()
+        self.ua = UserAgent()
+        self.update_headers()
+        self.cookies_set = False
+
+    def update_headers(self):
         self.session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "User-Agent": self.ua.random,
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
             "Referer": "https://yopmail.com/en/",
-            "Connection": "keep-alive"
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1"
         })
-        self.is_initialized = False
 
-    def initialize(self):
-        """Visita la home para obtener cookies de sesión"""
+    def init_cookies(self):
+        """Visita la home para obtener cookies válidas (CRÍTICO PARA QUE FUNCIONE)"""
         try:
-            self.session.get("https://yopmail.com/en/", timeout=10)
-            self.session.cookies.set('consent', 'yes') # Cookie de consentimiento
-            self.is_initialized = True
-            return True, "Sesión inicializada correctamente."
+            # 1. Petición inicial a la home
+            r = self.session.get("https://yopmail.com/en/", timeout=8)
+            # 2. Forzamos la cookie de consentimiento
+            self.session.cookies.set('consent', 'yes', domain='.yopmail.com')
+            self.session.cookies.set('yp', '1', domain='.yopmail.com') # Cookie de configuración
+            self.cookies_set = True
+            return True, "Cookies de sesión firmadas."
         except Exception as e:
-            return False, f"Error de conexión inicial: {e}"
+            return False, f"Error iniciando sesión: {e}"
 
-    def get_inbox(self, user):
-        """Obtiene mensajes de la bandeja"""
-        if not self.is_initialized:
-            self.initialize()
+    def scan_inbox(self, user):
+        """Lee la bandeja interna"""
+        if not self.cookies_set:
+            self.init_cookies()
             
         clean_user = user.split('@')[0]
-        # URL Específica que usa Yopmail internamente para cargar correos
+        # URL exacta que usa el iframe de Yopmail
+        # 'd=' vacía cache, 'ctrl=' evita cache, 'scrl=' scroll, 'spam=true' ve spam también
         url = f"https://yopmail.com/en/inbox?login={clean_user}&p=1&d=&ctrl=&scrl=&spam=true&v=3.1&r_c=&id="
         
         try:
             r = self.session.get(url, timeout=5)
-            if r.status_code == 200:
-                soup = BeautifulSoup(r.text, 'lxml') # lxml es más rápido
-                emails = []
-                # Los divs 'm' contienen los mensajes
-                for msg in soup.find_all('div', class_='m'):
-                    try:
-                        mid = msg['id']
-                        sender = msg.find('span', class_='lmf').text.strip()
-                        subject = msg.find('div', class_='lms').text.strip()
-                        emails.append({'id': mid, 'sender': sender, 'subject': subject})
-                    except:
-                        continue
-                return emails
-        except Exception:
-            pass
-        return []
+            if "To access your inbox" in r.text: # Captcha detectado
+                self.update_headers() # Rotar identidad
+                return [], "Bloqueo suave detectado, rotando IP..."
+                
+            soup = BeautifulSoup(r.text, 'lxml')
+            emails = []
+            
+            # Iterar sobre los mensajes (divs clase 'm')
+            for msg in soup.find_all('div', class_='m'):
+                try:
+                    mid = msg['id']
+                    # Extraer remitente
+                    s_tag = msg.find('span', class_='lmf')
+                    sender = s_tag.text.strip() if s_tag else "Desconocido"
+                    # Extraer asunto
+                    sub_tag = msg.find('div', class_='lms')
+                    subject = sub_tag.text.strip() if sub_tag else "Sin asunto"
+                    
+                    emails.append({'id': mid, 'sender': sender, 'subject': subject})
+                except:
+                    continue
+            return emails, "Escaneo correcto"
+        except Exception as e:
+            return [], str(e)
 
-    def get_body(self, user, msg_id):
-        """Lee el contenido de un mensaje"""
+    def read_mail(self, user, msg_id):
+        """Lee el cuerpo del mensaje"""
         clean_user = user.split('@')[0]
         url = f"https://yopmail.com/en/mail?b={clean_user}&id={msg_id}"
         try:
             r = self.session.get(url, timeout=5)
             soup = BeautifulSoup(r.text, 'lxml')
-            # El cuerpo suele estar en #mailmillieu
             body = soup.find('div', id='mailmillieu')
             return body.get_text(separator=' ', strip=True) if body else ""
         except:
             return ""
 
-# --- GESTIÓN DE ESTADO ---
-if 'scraper' not in st.session_state: st.session_state.scraper = YopScraper()
-if 'running' not in st.session_state: st.session_state.running = False
-if 'history' not in st.session_state: st.session_state.history = []
+# --- VARIABLES DE ESTADO ---
+if 'engine' not in st.session_state: st.session_state.engine = YopmailEngine()
+if 'run' not in st.session_state: st.session_state.run = False
+if 'data' not in st.session_state: st.session_state.data = []
 if 'processed' not in st.session_state: st.session_state.processed = []
 if 'logs' not in st.session_state: st.session_state.logs = []
 
 # --- FUNCIONES UI ---
-def log_msg(msg, type="INFO"):
+def log(msg, type="info"):
     t = datetime.now().strftime("%H:%M:%S")
-    entry = f'<div class="log-entry"><span class="log-time">[{t}]</span> <b>{type}:</b> {msg}</div>'
-    st.session_state.logs.insert(0, entry)
+    color = "log-succ" if type=="success" else ("log-err" if type=="error" else "")
+    st.session_state.logs.insert(0, f"<div class='log-line {color}'>[{t}] {msg}</div>")
     if len(st.session_state.logs) > 50: st.session_state.logs.pop()
 
-def toggle_monitor():
-    if not st.session_state.target_user:
-        st.toast("⚠️ Por favor escribe un usuario primero.", icon="🚫")
+def toggle():
+    if not st.session_state.target:
+        st.toast("⚠️ Falta el usuario", icon="🚫")
         return
-    
-    st.session_state.running = not st.session_state.running
-    if st.session_state.running:
-        status, msg = st.session_state.scraper.initialize()
-        if status:
-            log_msg(f"Monitor iniciado para: {st.session_state.target_user}", "SYSTEM")
-            log_msg(msg, "NETWORK")
-        else:
-            st.session_state.running = False
-            st.error(msg)
+    st.session_state.run = not st.session_state.run
+    if st.session_state.run:
+        log(f"Iniciando monitor para: {st.session_state.target}", "success")
+        ok, msg = st.session_state.engine.init_cookies()
+        log(msg, "info")
     else:
-        log_msg("Monitor detenido por usuario.", "SYSTEM")
+        log("Monitor detenido", "error")
 
-# --- LAYOUT DE LA APP ---
-
-# 1. SIDEBAR CONFIG
+# --- SIDEBAR ---
 with st.sidebar:
-    st.title("🛡️ RoyPlay Config")
-    st.caption("v3.0 Enterprise Edition")
-    st.markdown("---")
-    
-    st.markdown("### 🎯 Objetivo")
-    st.session_state.target_user = st.text_input("Usuario Objetivo", placeholder="ej: prueba1", help="Solo el nombre")
-    
-    st.markdown("### ⚡ Filtros")
-    filter_mode = st.radio("Modo de Extracción", ["Inteligente (Auto)", "Solo Códigos", "Solo Enlaces", "Todo el Texto"])
+    st.image("https://cdn-icons-png.flaticon.com/512/919/919825.png", width=40)
+    st.markdown("### CONFIGURACIÓN")
+    st.session_state.target = st.text_input("Usuario Yopmail", placeholder="ej: cine123")
     
     st.markdown("---")
-    if st.session_state.history:
-        # Botón de descarga CSV
-        df = pd.DataFrame(st.session_state.history)
-        csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Descargar Reporte CSV", csv, "reporte_royplay.csv", "text/csv")
+    st.markdown("### 🧬 PLATAFORMAS DETECTABLES")
+    st.caption("✅ Netflix (Hogar/Código)")
+    st.caption("✅ Disney+ / Star+")
+    st.caption("✅ HBO Max / Max")
+    st.caption("✅ Amazon Prime Video")
+    st.caption("✅ Paramount+")
+    
+    st.markdown("---")
+    if st.button("🗑️ Limpiar Historial"):
+        st.session_state.data = []
+        st.session_state.processed = []
+        st.rerun()
 
-# 2. HEADER Y MÉTRICAS
-st.markdown("## 📡 Panel de Control **Codigos**")
+# --- PANEL PRINCIPAL ---
+st.markdown("## 💎 ROYPLAY TITANIUM")
 
+# Métricas
 m1, m2, m3, m4 = st.columns(4)
-m1.metric("Estado", "ACTIVO" if st.session_state.running else "INACTIVO")
-m2.metric("Capturas Totales", len(st.session_state.history))
-m3.metric("Última Actividad", st.session_state.history[0]['Hora'] if st.session_state.history else "--:--")
-m4.metric("Cuenta", f"{st.session_state.target_user}@yopmail.com" if st.session_state.target_user else "---")
+m1.metric("ESTADO", "RUNNING" if st.session_state.run else "STOPPED")
+m2.metric("CAPTURAS", len(st.session_state.data))
+m3.metric("ÚLTIMO CHECK", datetime.now().strftime("%H:%M:%S"))
+m4.metric("TARGET", st.session_state.target if st.session_state.target else "---")
 
-# 3. ÁREA PRINCIPAL
-col_main, col_logs = st.columns([2, 1])
+# Layout
+c_main, c_log = st.columns([2, 1])
 
-with col_main:
-    st.markdown("### 🎮 Control de Misión")
+with c_main:
+    btn_txt = "⏹ ABORTAR MISION" if st.session_state.run else "▶ INICIAR SISTEMA"
+    st.button(btn_txt, on_click=toggle)
     
-    # Botón Principal
-    btn_label = "⏹ DETENER MONITOR" if st.session_state.running else "▶ INICIAR MONITOR"
-    st.button(btn_label, on_click=toggle_monitor)
+    st.markdown('<div class="titan-card">', unsafe_allow_html=True)
+    st.markdown("#### 📡 INTERCEPTOR FEED")
     
-    # Tabla de Resultados (Glass Card)
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    st.markdown("#### 📋 Resultados en Vivo")
-    if st.session_state.history:
-        df_hist = pd.DataFrame(st.session_state.history)
+    if st.session_state.data:
+        df = pd.DataFrame(st.session_state.data)
         st.data_editor(
-            df_hist,
+            df,
             column_config={
-                "Dato": st.column_config.TextColumn("Dato (Click para copiar)", width="large"),
-                "Tipo": st.column_config.Column("Tipo", width="small"),
+                "Plataforma": st.column_config.TextColumn("Servicio", width="small"),
+                "Dato": st.column_config.TextColumn("Dato (Copiar)", width="large"),
+                "Tipo": st.column_config.TextColumn("Tipo", width="small"),
             },
             hide_index=True,
             use_container_width=True,
-            height=300
+            height=350
         )
     else:
-        st.info("El sistema está esperando nuevos correos...")
+        st.info("Esperando señales...")
     st.markdown('</div>', unsafe_allow_html=True)
 
-with col_logs:
-    st.markdown("### 📟 Terminal")
-    log_content = "".join(st.session_state.logs)
-    st.markdown(f'<div class="terminal-window">{log_content}</div>', unsafe_allow_html=True)
+with c_log:
+    st.markdown("#### 📟 TERMINAL")
+    logs_html = "".join(st.session_state.logs)
+    st.markdown(f'<div class="console">{logs_html}</div>', unsafe_allow_html=True)
 
-# --- BUCLE DE PROCESAMIENTO (HIDDEN LOOP) ---
-if st.session_state.running:
-    with st.spinner("Escaneando red Yopmail..."):
-        time.sleep(3) # Delay ético
+# --- BUCLE DE PROCESAMIENTO (HIDDEN) ---
+if st.session_state.run:
+    with st.spinner("Escaneando frecuencia..."):
+        time.sleep(4) # Importante: Yopmail bloquea si bajas de 3s
         
-        # 1. Obtener Inbox
-        emails = st.session_state.scraper.get_inbox(st.session_state.target_user)
+        # 1. Escaneo
+        mails, status = st.session_state.engine.scan_inbox(st.session_state.target)
         
-        if not emails:
-            # log_msg("Sin cambios en la bandeja...", "SCAN") # Comentado para no spamear log
+        if not mails:
+            # log(status) # Silenciado para no llenar el log
             pass
         
-        for email in emails:
-            mid = email['id']
-            if mid not in st.session_state.processed:
-                # ¡Nuevo correo!
-                sender = email['sender']
-                subject = email['subject']
+        for m in mails:
+            if m['id'] not in st.session_state.processed:
+                # Nuevo correo
+                sender = m['sender']
+                subj = m['subject']
+                log(f"Interceptado: {sender} | {subj}", "info")
                 
-                log_msg(f"Correo detectado de: {sender}", "NEW MSG")
+                # 2. Lectura
+                body = st.session_state.engine.read_mail(st.session_state.target, m['id'])
                 
-                # 2. Obtener Cuerpo
-                body = st.session_state.scraper.get_body(st.session_state.target_user, mid)
+                # 3. Lógica de Extracción (REGEX AVANZADO)
+                extracted = None
+                tipo = "Info"
+                plat = "Otro"
                 
-                # 3. Extracción
-                extracted = "Texto base"
-                tipo = "TXT"
+                # Patrones
+                link_pat = re.search(r'https://www\.(netflix|disneyplus|amazon|hbomax|max|paramountplus)\.com/[^\s"]+', body)
+                code_pat = re.search(r'\b\d{4,8}\b', body) # Captura 4, 6 u 8 dígitos
                 
-                code_match = re.search(r'\b\d{4,8}\b', body)
-                link_match = re.search(r'https://www\.(netflix|disneyplus|amazon)\.com/[^\s"]+', body)
+                # Identificar Plataforma
+                s_lower = sender.lower()
+                if "netflix" in s_lower: plat = "Netflix"
+                elif "disney" in s_lower: plat = "Disney+"
+                elif "hbo" in s_lower or "max" in s_lower: plat = "HBO Max"
+                elif "amazon" in s_lower or "prime" in s_lower: plat = "Prime Video"
+                elif "paramount" in s_lower: plat = "Paramount+"
                 
-                save = False
-                
-                # Lógica de Filtros
-                if filter_mode == "Inteligente (Auto)":
-                    if link_match and ("hogar" in body.lower() or "household" in body.lower()):
+                # Decisión
+                if link_match := link_pat:
+                    if "hogar" in body.lower() or "household" in body.lower() or "update" in body.lower():
                         extracted = link_match.group(0)
                         tipo = "LINK 🏠"
-                        save = True
-                    elif code_match:
-                        extracted = code_match.group(0)
-                        tipo = "CODE 🔢"
-                        save = True
                 
-                elif filter_mode == "Solo Códigos" and code_match:
-                    extracted = code_match.group(0)
+                if not extracted and code_pat:
+                    extracted = code_pat.group(0)
                     tipo = "CODE 🔢"
-                    save = True
-                    
-                elif filter_mode == "Solo Enlaces" and link_match:
-                    extracted = link_match.group(0)
-                    tipo = "LINK 🔗"
-                    save = True
                 
-                elif filter_mode == "Todo el Texto":
-                    extracted = body[:100] + "..."
-                    tipo = "TEXT"
-                    save = True
-
-                if save:
-                    new_record = {
-                        "Hora": datetime.now().strftime("%H:%M:%S"),
-                        "Remitente": sender,
+                # Si encontramos algo
+                if extracted:
+                    st.session_state.data.insert(0, {
+                        "Hora": datetime.now().strftime("%H:%M"),
+                        "Plataforma": plat,
                         "Dato": extracted,
                         "Tipo": tipo
-                    }
-                    st.session_state.history.insert(0, new_record)
-                    st.toast(f"¡Dato Encontrado! {tipo}", icon="🎉")
-                    log_msg(f"Extracción exitosa: {tipo}", "SUCCESS")
+                    })
+                    log(f"¡ÉXITO! {plat}: {extracted}", "success")
+                    st.toast(f"{plat}: {extracted}", icon="🔥")
                 
-                st.session_state.processed.append(mid)
+                st.session_state.processed.append(m['id'])
         
         st.rerun()
