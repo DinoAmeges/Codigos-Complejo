@@ -3,13 +3,12 @@ import requests
 import pandas as pd
 import time
 import re
-import random
 from datetime import datetime
 from bs4 import BeautifulSoup
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    page_title="RoyPlay Interceptor V5",
+    page_title="RoyPlay 1SecMail Core",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -22,43 +21,46 @@ st.markdown("""
     
     :root {
         --bg-color: #050505;
-        --card-bg: #0f0f0f;
-        --accent: #00ff41; /* Hacker Green */
-        --accent-sec: #00f3ff; /* Cyan */
-        --danger: #ff0055;
+        --card-bg: #111;
+        --accent: #00e5ff; /* Cyan Neón */
+        --success: #00ff41; /* Hacker Green */
     }
 
     .stApp {
         background-color: var(--bg-color);
-        background-image: radial-gradient(circle at 50% 0%, #111 0%, #000 70%);
+        background-image: 
+            linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
+        background-size: 40px 40px;
         font-family: 'Inter', sans-serif;
     }
 
     h1, h2, h3 { font-family: 'Chakra Petch', sans-serif; text-transform: uppercase; letter-spacing: 1px; }
 
     /* Tarjetas */
-    .interceptor-card {
-        background: rgba(20, 20, 20, 0.8);
+    .titan-card {
+        background: rgba(17, 17, 17, 0.9);
         border: 1px solid #333;
-        border-left: 4px solid var(--accent);
+        border-top: 2px solid var(--accent);
         border-radius: 8px;
         padding: 20px;
-        box-shadow: 0 0 20px rgba(0, 255, 65, 0.05);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         margin-bottom: 15px;
     }
 
     /* Métricas */
     div[data-testid="stMetric"] {
-        background-color: #0a0a0a;
+        background-color: #0e0e0e;
         border: 1px solid #222;
         border-radius: 6px;
-        padding: 10px;
+        padding: 15px;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
     }
     div[data-testid="stMetricValue"] { color: var(--accent); font-family: 'Chakra Petch'; }
 
     /* Botones */
     div.stButton > button:first-child {
-        background: linear-gradient(90deg, #008f24, #00ff41);
+        background: linear-gradient(135deg, #0061ff, #00e5ff);
         color: #000;
         font-weight: 800;
         border: none;
@@ -68,157 +70,114 @@ st.markdown("""
         transition: 0.3s;
     }
     div.stButton > button:first-child:hover {
-        box-shadow: 0 0 15px var(--accent);
+        box-shadow: 0 0 20px rgba(0, 229, 255, 0.6);
         transform: scale(1.02);
     }
 
-    /* Consola */
+    /* Terminal */
     .console-log {
         font-family: 'Courier New', monospace;
         background: #000;
         border: 1px solid #222;
-        padding: 10px;
-        height: 250px;
+        padding: 15px;
+        height: 300px;
         overflow-y: auto;
         font-size: 11px;
         color: #ccc;
+        border-left: 3px solid var(--success);
     }
-    .log-success { color: var(--accent); font-weight: bold; }
-    .log-info { color: var(--accent-sec); }
-    .log-warn { color: #ffaa00; }
+    .log-success { color: var(--success); font-weight: bold; }
+    .log-info { color: var(--accent); }
+    .log-sys { color: #666; }
     
-    /* Input Fields */
-    .stTextInput > div > div > input {
-        background-color: #111;
-        color: white;
-        border: 1px solid #333;
-    }
+    /* Inputs */
+    .stTextInput > div > div > input { background-color: #111; color: white; border: 1px solid #333; }
+    .stSelectbox > div > div > div { background-color: #111; color: white; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- CLASE CORE: YOPMAIL SOCKET CLIENT ---
-class YopmailSocket:
+# --- CLASE API CLIENT: 1SECMAIL ---
+class OneSecMailClient:
     def __init__(self):
-        self.s = requests.Session()
-        # Headers idénticos a un navegador real
-        self.s.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Referer": "https://yopmail.com/en/",
-            "Origin": "https://yopmail.com",
-            "Connection": "keep-alive"
-        })
-        self.cookies_ok = False
+        self.base_url = "https://www.1secmail.com/api/v1/"
+        self.session = requests.Session()
 
-    def handshake(self):
-        """Visita la home para obtener cookies de sesión (yp, consent)"""
+    def get_inbox(self, user, domain):
+        """Consulta la API para obtener lista de mensajes"""
         try:
-            r = self.s.get("https://yopmail.com/en/", timeout=10)
+            url = f"{self.base_url}?action=getMessages&login={user}&domain={domain}"
+            r = self.session.get(url, timeout=5)
             if r.status_code == 200:
-                # Extraer token 'yj' si existe (a veces Yopmail lo pide)
-                self.cookies_ok = True
-                return True, "Conexión establecida con Yopmail."
-            return False, f"Error Handshake: Status {r.status_code}"
-        except Exception as e:
-            return False, f"Error de red: {e}"
-
-    def get_inbox(self, user):
-        """Obtiene el HTML crudo de la bandeja"""
-        if not self.cookies_ok:
-            self.handshake()
-            
-        clean_user = user.split('@')[0]
-        timestamp = int(time.time())
-        
-        # URL de la API interna que carga la lista
-        url = f"https://yopmail.com/en/inbox?login={clean_user}&p=1&d=&ctrl=&scrl=&spam=true&v=3.1&r_c=&id="
-        
-        try:
-            r = self.s.get(url, timeout=5)
-            soup = BeautifulSoup(r.text, 'lxml')
-            
-            emails = []
-            # Cada correo es un div con clase 'm'
-            for msg in soup.find_all('div', class_='m'):
-                try:
-                    mid = msg['id']
-                    sender = msg.find('span', class_='lmf').text.strip()
-                    subject = msg.find('div', class_='lms').text.strip()
-                    emails.append({'id': mid, 'sender': sender, 'subject': subject})
-                except:
-                    continue
-            return emails
+                return r.json() # Devuelve lista de dicts
+            return []
         except:
             return []
 
-    def get_mail_body(self, user, msg_id):
-        """Obtiene el contenido completo del correo"""
-        clean_user = user.split('@')[0]
-        url = f"https://yopmail.com/en/mail?b={clean_user}&id={msg_id}"
-        
+    def read_message(self, user, domain, msg_id):
+        """Descarga el contenido completo del mensaje"""
         try:
-            r = self.s.get(url, timeout=5)
-            soup = BeautifulSoup(r.text, 'lxml')
-            # El cuerpo real está en el div 'mailmillieu'
-            body_div = soup.find('div', id='mailmillieu')
-            
-            if body_div:
-                # Obtenemos texto limpio, pero también buscamos en hrefs
-                text_content = body_div.get_text(separator=' ', strip=True)
-                html_content = str(body_div) # Para buscar enlaces en etiquetas <a>
-                return text_content, html_content
-            return "", ""
+            url = f"{self.base_url}?action=readMessage&login={user}&domain={domain}&id={msg_id}"
+            r = self.session.get(url, timeout=5)
+            if r.status_code == 200:
+                return r.json()
+            return None
         except:
-            return "", ""
+            return None
 
-# --- MOTOR DE EXTRACCIÓN INTELIGENTE ---
-def extract_data(sender, subject, text_body, html_body):
+# --- MOTOR DE EXTRACCIÓN UNIVERSAL ---
+def extract_smart_data(sender, subject, text_body, html_body):
     """
-    Analiza el texto y decide qué es (Código o Link) basándose en la plataforma.
-    Soporta: Netflix, Disney, HBO, Prime, Paramount, Vix, etc.
+    Analiza correos de Netflix, Disney, HBO, Prime, Paramount, ViX, etc.
     """
     sender = sender.lower()
     subject = subject.lower()
-    data_found = None
-    data_type = "INFO"
+    
+    # 1. Detectar Plataforma
     platform = "General"
-
-    # 1. Identificar Plataforma
     if "netflix" in sender: platform = "Netflix"
     elif "disney" in sender or "star+" in sender: platform = "Disney+"
     elif "hbo" in sender or "max" in sender: platform = "HBO Max"
     elif "amazon" in sender or "prime" in sender: platform = "Prime Video"
     elif "paramount" in sender: platform = "Paramount+"
     elif "vix" in sender: platform = "ViX"
-    
-    # 2. Lógica de Extracción
-    
-    # A. Enlaces de Hogar / Actualización (Prioridad)
+
+    extracted = None
+    tipo = "INFO"
+
+    # 2. Extracción de LINK HOGAR / ACTUALIZAR
+    # Prioridad alta: Links de Hogar Netflix/Disney
     if "hogar" in text_body.lower() or "household" in text_body.lower() or "update" in text_body.lower() or "actualizar" in text_body.lower():
-        # Regex para buscar enlaces específicos en el HTML
-        link_patterns = [
+        # Patrones de URL específicos
+        patterns = [
             r'https://www\.netflix\.com/account/update-household[^\s"]+',
             r'https://www\.disneyplus\.com/travel[^\s"]+',
-            r'https://www\.amazon\.com/ap/cvf[^\s"]+' # Amazon verify
+            r'https://www\.amazon\.com/ap/cvf[^\s"]+'
         ]
         
-        for pattern in link_patterns:
-            match = re.search(pattern, html_body)
+        # Buscar en HTML primero (más fiable para links)
+        if html_body:
+            for pat in patterns:
+                match = re.search(pat, html_body)
+                if match:
+                    return match.group(0), "LINK 🏠", platform
+        
+        # Buscar en Texto si falla HTML
+        for pat in patterns:
+            match = re.search(pat, text_body)
             if match:
                 return match.group(0), "LINK 🏠", platform
 
-    # B. Códigos Numéricos
-    # Buscamos números de 4 a 6 dígitos aislados
-    # Excluimos años (2023, 2024) si es posible, pero regex simple suele bastar
+    # 3. Extracción de CÓDIGOS NUMÉRICOS
+    # Busca códigos de 4 a 6 dígitos (ej: 1234, 123456)
+    # Evita capturar años como "2024" si es posible, pero regex simple suele funcionar bien en correos transaccionales
     code_match = re.search(r'\b\d{4,6}\b', text_body)
     if code_match:
         return code_match.group(0), "CÓDIGO 🔢", platform
 
-    return None, None, platform
+    return None, "INFO", platform
 
 # --- GESTIÓN DE ESTADO ---
-if 'client' not in st.session_state: st.session_state.client = YopmailSocket()
+if 'api' not in st.session_state: st.session_state.api = OneSecMailClient()
 if 'running' not in st.session_state: st.session_state.running = False
 if 'history' not in st.session_state: st.session_state.history = []
 if 'processed' not in st.session_state: st.session_state.processed = []
@@ -229,110 +188,116 @@ def log(msg, type="info"):
     st.session_state.logs.insert(0, f"[{t}] {type.upper()}: {msg}")
 
 def toggle():
-    if not st.session_state.target:
-        st.toast("⚠️ Faltó el usuario", icon="🚫")
+    if not st.session_state.user_input:
+        st.toast("⚠️ Falta el usuario", icon="🚫")
         return
     st.session_state.running = not st.session_state.running
     if st.session_state.running:
-        ok, msg = st.session_state.client.handshake()
-        if ok:
-            log(f"Iniciando escucha en: {st.session_state.target}", "success")
-        else:
-            st.error(msg)
-            st.session_state.running = False
+        log(f"Iniciando API Monitor: {st.session_state.user_input}@{st.session_state.domain_input}", "success")
+    else:
+        log("Monitor detenido", "sys")
 
 # --- UI LAYOUT ---
 with st.sidebar:
-    st.title("ROYPLAY V5")
+    st.title("ROYPLAY API CORE")
+    st.caption("v6.0 Titanium Edition")
     st.markdown("---")
-    st.session_state.target = st.text_input("USUARIO YOPMAIL", placeholder="ej: cinecasa1")
-    st.caption("No agregues @yopmail.com")
     
-    st.markdown("### 📡 SOPORTE ACTIVO")
+    st.markdown("### 👤 CUENTA")
+    col_u, col_d = st.columns([2, 1])
+    st.session_state.user_input = col_u.text_input("Usuario", placeholder="ej: cine1")
+    st.session_state.domain_input = col_d.selectbox("Dominio", ["1secmail.com", "1secmail.net", "1secmail.org", "wwjmz.com", "esiix.com"])
+    
+    st.markdown("---")
+    st.markdown("### 🧬 PLATAFORMAS")
     st.success("NETFLIX (Code/Hogar)")
     st.info("DISNEY+ / STAR+")
     st.warning("PRIME VIDEO")
-    st.error("HBO MAX")
-    st.info("PARAMOUNT+ / VIX")
+    st.error("HBO MAX / VIX")
     
-    if st.button("LIMPIAR DATOS"):
+    st.markdown("---")
+    if st.button("🗑️ LIMPIAR DATOS"):
         st.session_state.history = []
         st.session_state.processed = []
         st.rerun()
 
 # MAIN SCREEN
-st.markdown("## ⚡ INTERCEPTOR DE CÓDIGOS")
+st.markdown("## ⚡ INTERCEPTOR 1SECMAIL")
 
 m1, m2, m3 = st.columns(3)
 m1.metric("ESTADO", "ACTIVO" if st.session_state.running else "INACTIVO")
 m2.metric("CAPTURAS", len(st.session_state.history))
-m3.metric("OBJETIVO", st.session_state.target if st.session_state.target else "---")
+m3.metric("OBJETIVO", f"{st.session_state.user_input}@{st.session_state.domain_input}" if st.session_state.user_input else "---")
 
 c_main, c_log = st.columns([2, 1])
 
 with c_main:
-    btn_text = "⏹ DETENER SISTEMA" if st.session_state.running else "▶ INICIAR SISTEMA"
+    btn_text = "⏹ ABORTAR SISTEMA" if st.session_state.running else "▶ INICIAR SISTEMA"
     st.button(btn_text, on_click=toggle, use_container_width=True)
     
     if st.session_state.history:
         for item in st.session_state.history:
             st.markdown(f"""
-            <div class="interceptor-card">
-                <div style="display:flex; justify-content:space-between; color:#888; font-size:12px;">
+            <div class="titan-card">
+                <div style="display:flex; justify-content:space-between; color:#666; font-size:12px; margin-bottom:5px;">
                     <span>{item['Hora']}</span>
-                    <span>{item['Plataforma']}</span>
+                    <span style="color:#00e5ff; font-weight:bold;">{item['Plataforma']}</span>
                 </div>
-                <div style="font-size:14px; margin-top:5px; color:#fff;">{item['Asunto']}</div>
-                <div style="font-size:24px; font-weight:bold; color:#00ff41; margin:10px 0; letter-spacing:2px;">
+                <div style="font-size:14px; color:#ccc;">{item['Asunto']}</div>
+                <div style="font-size:28px; font-weight:bold; color:#00ff41; margin:10px 0; letter-spacing:2px; text-shadow: 0 0 10px rgba(0,255,65,0.3);">
                     {item['Dato']}
                 </div>
-                <div style="font-size:12px; color:#00f3ff; border-top:1px solid #333; padding-top:5px;">
-                    TIPO: {item['Tipo']}
+                <div style="font-size:11px; color:#444; border-top:1px solid #222; padding-top:5px; text-transform:uppercase;">
+                    DETECTADO: {item['Tipo']}
                 </div>
             </div>
             """, unsafe_allow_html=True)
     else:
-        st.info("Esperando correos entrantes...")
+        st.info("El sistema está esperando señales de la API...")
 
 with c_log:
-    st.markdown("### 📟 LOGS")
+    st.markdown("### 📟 SYSTEM LOG")
     log_text = "\n".join(st.session_state.logs)
-    st.text_area("Console", log_text, height=400, disabled=True, label_visibility="collapsed")
+    st.text_area("Console", log_text, height=450, disabled=True, label_visibility="collapsed")
 
-# --- LOOP EN SEGUNDO PLANO ---
+# --- BUCLE DE PROCESAMIENTO ---
 if st.session_state.running:
-    with st.spinner("Escaneando red..."):
-        time.sleep(3) # Respetar rate-limit de Yopmail
+    with st.spinner("Sincronizando con API 1secmail..."):
+        time.sleep(3) # Respeto a la API
         
-        inbox = st.session_state.client.get_inbox(st.session_state.target)
+        inbox = st.session_state.api.get_inbox(st.session_state.user_input, st.session_state.domain_input)
         
-        for mail in inbox:
-            if mail['id'] not in st.session_state.processed:
-                # NUEVO MENSAJE
-                sender = mail['sender']
-                subject = mail['subject']
+        for msg in inbox:
+            msg_id = msg['id']
+            if msg_id not in st.session_state.processed:
+                # Nuevo Mensaje
+                sender = msg['from']
+                subject = msg['subject']
+                log(f"Recibido: {sender}", "info")
                 
-                log(f"Interceptado: {sender}", "info")
+                # Leer Contenido Completo
+                full_msg = st.session_state.api.read_message(st.session_state.user_input, st.session_state.domain_input, msg_id)
                 
-                # Leer contenido
-                txt_body, html_body = st.session_state.client.get_mail_body(st.session_state.target, mail['id'])
+                if full_msg:
+                    text_body = full_msg.get('textBody', '')
+                    html_body = full_msg.get('htmlBody', '') # Importante para links
+                    
+                    # Extraer Dato
+                    dato, tipo, plat = extract_smart_data(sender, subject, text_body, html_body)
+                    
+                    if dato:
+                        st.session_state.history.insert(0, {
+                            "Hora": datetime.now().strftime("%H:%M:%S"),
+                            "Plataforma": plat,
+                            "Asunto": subject,
+                            "Dato": dato,
+                            "Tipo": tipo
+                        })
+                        st.toast(f"{plat}: {dato}", icon="🔥")
+                        log(f"Extracción exitosa: {dato}", "success")
+                    else:
+                        log("Correo procesado sin datos relevantes.", "sys")
                 
-                # Extraer Dato
-                dato, tipo, plat = extract_data(sender, subject, txt_body, html_body)
-                
-                if dato:
-                    st.session_state.history.insert(0, {
-                        "Hora": datetime.now().strftime("%H:%M:%S"),
-                        "Plataforma": plat,
-                        "Asunto": subject,
-                        "Dato": dato,
-                        "Tipo": tipo
-                    })
-                    st.toast(f"{plat}: {dato}", icon="🔥")
-                    log(f"Extracción exitosa: {dato}", "success")
-                else:
-                    log("Correo analizado sin datos clave.", "warn")
-                
-                st.session_state.processed.append(mail['id'])
+                st.session_state.processed.append(msg_id)
         
         st.rerun()
