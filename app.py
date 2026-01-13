@@ -9,7 +9,7 @@ from datetime import datetime
 
 # --- 1. CONFIGURACIÓN DEL SISTEMA ---
 st.set_page_config(
-    page_title="RoyPlay Neon Commander v18",
+    page_title="RoyPlay Commander v19",
     page_icon="💠",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -131,7 +131,7 @@ st.markdown("""
         background-size: 100% 4px;
     }
     
-    /* LOG ROWS */
+    /* LOG ROWS (Corregido: sin espacios para evitar renderizado de código) */
     .log-row {
         display: flex; padding: 6px 10px; margin-bottom: 4px; border-radius: 4px;
         align-items: center; border-left: 2px solid transparent;
@@ -269,7 +269,6 @@ k4.metric("CAPTURAS", st.session_state.hits)
 st.write("") 
 
 # BOTONERA CENTRAL (COLOREADA)
-# Usamos un espaciado inteligente para centrar
 c_L, btn1, btn2, btn3, c_R = st.columns([1, 2, 2, 2, 1])
 
 with btn1:
@@ -308,12 +307,8 @@ for l in st.session_state.logs:
         p = msg_txt.split(": ")
         if len(p)>1: msg_txt = f"{p[0]}: <span style='background:#00f3ff; color:#000; padding:0 5px; font-weight:bold;'>{p[1]}</span>"
     
-    log_html += f"""
-    <div class='log-row {l['c']}'>
-        <div class='log-ts'>{l['t']}</div>
-        <div>{msg_txt}</div>
-    </div>
-    """
+    # Generamos la línea HTML en una sola línea para evitar errores de renderizado
+    log_html += f"<div class='log-row {l['c']}'><div class='log-ts'>{l['t']}</div><div>{msg_txt}</div></div>"
 
 st.markdown(f"""
 <div class="dashboard-console">
