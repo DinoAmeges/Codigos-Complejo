@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    page_title="Terminal Virgilian Fix",
+    page_title="Terminal Monitor v9.2",
     page_icon="🍏",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -21,10 +21,7 @@ st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600&display=swap');
     
-    .stApp {
-        background-color: #0d1117;
-        font-family: 'Inter', sans-serif;
-    }
+    .stApp { background-color: #0d1117; font-family: 'Inter', sans-serif; }
 
     /* VENTANA MAC */
     .mac-window {
@@ -44,11 +41,7 @@ st.markdown("""
         border-bottom: 1px solid #16161e;
     }
 
-    .traffic-lights {
-        display: flex;
-        gap: 8px;
-        margin-right: 15px;
-    }
+    .traffic-lights { display: flex; gap: 8px; margin-right: 15px; }
     .dot { width: 12px; height: 12px; border-radius: 50%; }
     .close { background-color: #ff5f56; }
     .min { background-color: #ffbd2e; }
@@ -70,13 +63,17 @@ st.markdown("""
         font-family: 'Fira Code', monospace;
         font-size: 13px;
         min-height: 400px;
+        max-height: 600px;
+        overflow-y: auto;
         line-height: 1.6;
+        display: flex;
+        flex-direction: column-reverse; /* Hace que lo nuevo salga arriba siempre */
     }
 
     /* FILAS DE LOG */
     .log-row {
         border-bottom: 1px dashed #2f3549;
-        padding: 8px 0;
+        padding: 6px 0;
         display: flex;
         align-items: center;
     }
@@ -85,27 +82,24 @@ st.markdown("""
     .error { color: #f7768e; font-weight: bold; }
     .info { color: #7dcfff; }
     .warn { color: #e0af68; }
-    .sys { color: #bb9af7; }
     
     .code-box { 
         background: #16161e; 
         border: 1px solid #7aa2f7; 
         color: #7aa2f7; 
-        padding: 5px 10px; 
+        padding: 4px 8px; 
         border-radius: 4px; 
         font-weight: bold; 
         margin-left: 10px;
         box-shadow: 0 0 10px rgba(122, 162, 247, 0.2);
     }
 
-    /* INPUTS */
+    /* INPUTS & UI */
     .stTextInput input, .stSelectbox div[data-baseweb="select"] {
         background-color: #24283b !important;
         color: #c0caf5 !important;
         border: 1px solid #414868 !important;
     }
-    
-    /* BOTONES */
     div.stButton > button:first-child {
         background: linear-gradient(90deg, #3d59a1, #7aa2f7);
         border: none;
@@ -115,16 +109,14 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- CLIENTE MAIL.TM ROBUSTO ---
+# --- CLIENTE API ---
 class MailClient:
     def __init__(self):
         self.api = "https://api.mail.tm"
         self.headers = {"Content-Type": "application/json", "Accept": "application/json"}
         self.token = None
-        self.id = None
 
     def get_domains(self):
-        """Obtiene solo dominios VIVOS"""
         try:
             r = requests.get(f"{self.api}/domains", timeout=5)
             if r.status_code == 200:
@@ -133,36 +125,24 @@ class MailClient:
         except: return []
 
     def register_and_login(self, address, password):
-        # 1. Intentar Crear Cuenta
         payload = {"address": address, "password": password}
         try:
-            r = requests.post(f"{self.api}/accounts", json=payload, headers=self.headers)
-            
-            # Si falla, devolvemos el error exacto para que el usuario sepa qué pasó
-            if r.status_code not in [201, 422]: # 422 significa "Ya existe", lo cual es bueno
-                error_msg = r.json().get('detail', 'Error desconocido')
-                return False, f"Error API ({r.status_code}): {error_msg}"
-                
-        except Exception as e:
-            return False, f"Error de Conexión: {e}"
-
-        # 2. Intentar Login (Obtener Token)
-        try:
+            requests.post(f"{self.api}/accounts", json=payload, headers=self.headers)
+            # Intentar Login
             r = requests.post(f"{self.api}/token", json=payload, headers=self.headers)
             if r.status_code == 200:
                 self.token = r.json()['token']
-                self.id = r.json()['id']
                 self.headers['Authorization'] = f"Bearer {self.token}"
-                return True, "Autenticación Exitosa"
-            else:
-                return False, "Login fallido: Credenciales inválidas"
+                return True, "Conectado"
+            return False, f"Error Login: {r.status_code}"
         except Exception as e:
             return False, str(e)
 
     def fetch_messages(self):
         if not self.token: return []
         try:
-            r = requests.get(f"{self.api}/messages", headers=self.headers)
+            # Pedimos la página 1 de mensajes
+            r = requests.get(f"{self.api}/messages?page=1", headers=self.headers)
             if r.status_code == 200:
                 return r.json()['hydra:member']
             return []
@@ -180,160 +160,143 @@ class MailClient:
             return "", ""
         except: return "", ""
 
-# --- PARSER ---
+# --- LOGICA ---
 def find_secrets(html, text):
     content = (html or "") + " " + (text or "")
-    
-    # Links
     if "hogar" in content.lower() or "household" in content.lower() or "update" in content.lower():
-        link_pat = r'https://www\.(netflix|disneyplus)\.com/[^\s"\'<>]+'
-        match = re.search(link_pat, content)
-        if match: return match.group(0), "LINK 🏠"
-
-    # Códigos Numéricos
+        if match := re.search(r'https://www\.(netflix|disneyplus)\.com/[^\s"\'<>]+', content):
+            return match.group(0), "LINK 🏠"
+    
+    # Busca cualquier número de 4 a 6 dígitos
     codes = re.findall(r'\b\d{4,6}\b', content)
     for c in codes:
         if c not in ["2023", "2024", "2025", "2026"]:
             return c, "CÓDIGO 🔢"
-            
     return None, None
 
-# --- STATE ---
+# --- ESTADO ---
 if 'client' not in st.session_state: st.session_state.client = MailClient()
 if 'run' not in st.session_state: st.session_state.run = False
 if 'logs' not in st.session_state: st.session_state.logs = []
 if 'processed' not in st.session_state: st.session_state.processed = []
+if 'msg_count' not in st.session_state: st.session_state.msg_count = 0
 
-# Carga inicial de dominios (Solo una vez)
+# Carga de dominios
 if 'domain_list' not in st.session_state:
-    with st.spinner("Conectando con servidor Mail.tm..."):
-        doms = st.session_state.client.get_domains()
-        if not doms:
-            doms = ["Error de conexión"]
-        st.session_state.domain_list = doms
+    doms = st.session_state.client.get_domains()
+    st.session_state.domain_list = doms if doms else ["Error API"]
 
 def log(msg, type="info"):
     t = datetime.now().strftime("%H:%M:%S")
     st.session_state.logs.insert(0, {"t": t, "m": msg, "type": type})
 
-def start():
-    usr = st.session_state.u_in
-    dom = st.session_state.d_in
-    pwd = st.session_state.p_in
-    
-    if not usr:
-        st.toast("⚠️ Escribe un usuario", icon="🚫")
-        return
-    
-    # Validar que no haya seleccionado "Error de conexión"
-    if "Error" in dom:
-        st.error("No hay dominios disponibles. Recarga la página.")
-        return
-        
-    full = f"{usr}@{dom}"
-    
-    log(f"Intentando registrar: {full} ...", "sys")
-    
-    ok, status = st.session_state.client.register_and_login(full, pwd)
-    
-    if ok:
-        st.session_state.run = True
-        log(f"✅ {status}", "success")
-        log(f"Esperando correos en {full}", "info")
-    else:
-        st.session_state.run = False
-        log(f"❌ {status}", "error")
-        st.error(status)
-
-def stop():
-    st.session_state.run = False
-    log("Proceso detenido por usuario.", "warn")
-
-# --- UI LAYOUT ---
-
-# SIDEBAR
+# --- UI ---
 with st.sidebar:
     st.title("🖥️ CONFIG")
-    st.markdown("---")
     st.session_state.u_in = st.text_input("Usuario", placeholder="netflix")
     
-    # Selector de Dominio
-    # Intentamos seleccionar virgilian.com si existe, sino el primero de la lista
-    dom_idx = 0
+    # Auto-selección virgilian
+    d_idx = 0
     if "virgilian.com" in st.session_state.domain_list:
-        dom_idx = st.session_state.domain_list.index("virgilian.com")
+        d_idx = st.session_state.domain_list.index("virgilian.com")
+    st.session_state.d_in = st.selectbox("Dominio", st.session_state.domain_list, index=d_idx)
     
-    st.session_state.d_in = st.selectbox("Dominio Activo", st.session_state.domain_list, index=dom_idx)
+    # Pass
+    if 'pass' not in st.session_state:
+        st.session_state.pass_val = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+    st.session_state.p_in = st.text_input("Pass", value=st.session_state.pass_val, type="password")
     
-    # Password
-    if 'auto_pass' not in st.session_state:
-        st.session_state.auto_pass = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
-    st.session_state.p_in = st.text_input("Password", value=st.session_state.auto_pass, type="password")
-    
-    st.markdown("---")
-    if st.button("Limpiar Pantalla"):
+    if st.button("LIMPIAR"):
         st.session_state.logs = []
+        st.session_state.processed = []
         st.rerun()
 
-# MAIN
+# --- HEADER Y BOTONES ---
 c1, c2 = st.columns([3, 1])
 with c1:
-    st.markdown("### 🍏 Terminal Monitor Pro")
+    st.markdown(f"### 🍏 Terminal Pro | Bandeja: **{st.session_state.msg_count}** msgs")
 with c2:
     if st.session_state.run:
-        st.button("DETENER", on_click=stop, use_container_width=True)
+        if st.button("DETENER", type="primary", use_container_width=True):
+            st.session_state.run = False
+            st.rerun()
     else:
-        st.button("INICIAR", on_click=start, use_container_width=True)
+        if st.button("INICIAR", type="primary", use_container_width=True):
+            full = f"{st.session_state.u_in}@{st.session_state.d_in}"
+            ok, msg = st.session_state.client.register_and_login(full, st.session_state.p_in)
+            if ok:
+                st.session_state.run = True
+                log(f"Conectado a {full}", "success")
+                st.rerun()
+            else:
+                st.error(msg)
 
-# TERMINAL WINDOW
-log_html = ""
-for l in st.session_state.logs:
-    css = l['type']
-    msg = l['m']
-    if "CÓDIGO" in msg or "LINK" in msg:
-        parts = msg.split(": ")
-        if len(parts) > 1:
-            msg = f"{parts[0]}: <span class='code-box'>{parts[1]}</span>"
-            
-    log_html += f"<div class='log-row'><span class='time-tag'>[{l['t']}]</span> <span class='{css}'>{msg}</span></div>"
+# --- CONTENEDOR DE TERMINAL (PLACEHOLDER) ---
+# Esto es vital: creamos un espacio vacío que llenaremos dinámicamente
+terminal_placeholder = st.empty()
 
-st.markdown(f"""
-<div class="mac-window">
-    <div class="mac-header">
-        <div class="traffic-lights">
-            <div class="dot close"></div>
-            <div class="dot min"></div>
-            <div class="dot max"></div>
+def render_terminal():
+    log_html = ""
+    for l in st.session_state.logs:
+        css = l['type']
+        msg = l['m']
+        if "CÓDIGO" in msg or "LINK" in msg:
+            parts = msg.split(": ")
+            if len(parts) > 1: msg = f"{parts[0]}: <span class='code-box'>{parts[1]}</span>"
+        log_html += f"<div class='log-row'><span class='time-tag'>[{l['t']}]</span> <span class='{css}'>{msg}</span></div>"
+
+    terminal_placeholder.markdown(f"""
+    <div class="mac-window">
+        <div class="mac-header">
+            <div class="traffic-lights">
+                <div class="dot close"></div>
+                <div class="dot min"></div>
+                <div class="dot max"></div>
+            </div>
+            <div class="mac-title">root @ mail-server — 80x24</div>
         </div>
-        <div class="mac-title">root @ mail-server — 80x24</div>
+        <div class="terminal-body">
+            {log_html}
+        </div>
     </div>
-    <div class="terminal-body">
-        {log_html}
-    </div>
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-# --- BACKGROUND PROCESS ---
+# Renderizar estado inicial
+render_terminal()
+
+# --- LOOP PRINCIPAL ---
 if st.session_state.run:
+    # 1. Obtener mensajes
     msgs = st.session_state.client.fetch_messages()
+    st.session_state.msg_count = len(msgs) # Actualizar contador visual
     
     if msgs:
         for m in msgs:
             if m['id'] not in st.session_state.processed:
                 sender = m['from']['address']
                 subj = m['subject']
-                log(f"Correo Nuevo: {sender} | {subj}", "info")
                 
+                # AVISAR QUE LLEGÓ ALGO
+                log(f"📨 Llegó correo de: {sender}", "info")
+                render_terminal() # Actualizar pantalla YA
+                
+                # LEER CONTENIDO
                 html, text = st.session_state.client.get_full_content(m['id'])
                 dato, tipo = find_secrets(html, text)
                 
                 if dato:
-                    log(f"¡CAPTURADO! {tipo}: {dato}", "success")
+                    log(f"🔥 {tipo}: {dato}", "success")
                     st.toast(f"Clave: {dato}", icon="🔥")
                 else:
-                    log("Correo analizado (Sin datos clave).", "warn")
+                    log(f"Leído: {subj} (Sin códigos)", "warn")
                 
                 st.session_state.processed.append(m['id'])
+                render_terminal()
     
-    time.sleep(4)
+    # 2. Latido visual (para saber que no está congelado)
+    # time.sleep(4)
+    # st.rerun()
+    
+    # TRUCO PRO: Usamos sleep y rerun para bucle continuo
+    time.sleep(3)
     st.rerun()
