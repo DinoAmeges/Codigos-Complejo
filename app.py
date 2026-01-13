@@ -324,6 +324,7 @@ st.markdown(f"""
         {log_html}
     </div>
 </div>
+</div>
 """, unsafe_allow_html=True)
 
 # LOOP
