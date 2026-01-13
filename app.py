@@ -233,7 +233,7 @@ def log(msg, type="c-dim"):
 # 1. SIDEBAR
 with st.sidebar:
     st.markdown('<div class="logo-box">', unsafe_allow_html=True)
-    logo_path = "Logo.png"
+    logo_path = "Captura_de_pantalla_2025-12-09_195930-removebg-preview.png"
     if not os.path.exists(logo_path): logo_path = "Logo.jpg"
     
     if os.path.exists(logo_path):
