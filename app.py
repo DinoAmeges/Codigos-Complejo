@@ -311,3 +311,8 @@ if st.session_state.active:
                     log("Contenido analizado. Sin claves.", "msg-sys")
                 
                 st.session_state.processed.append(m['id'])
+                time.sleep(0.1) # Pequeña pausa para efecto de escritura
+                st.rerun()
+    
+    time.sleep(3)
+    st.rerun()
