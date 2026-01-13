@@ -1,302 +1,313 @@
 import streamlit as st
 import requests
-import pandas as pd
 import time
 import re
 import random
 import string
 from datetime import datetime
-from bs4 import BeautifulSoup
 
-# --- CONFIGURACIÓN DE PÁGINA ---
+# --- 1. CONFIGURACIÓN DEL SISTEMA ---
 st.set_page_config(
-    page_title="Terminal Monitor v9.2",
-    page_icon="🍏",
+    page_title="Terminal Ops v12",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- CSS ESTILO MAC OS TERMINAL ---
+# --- 2. ESTÉTICA "MAC OS PRO" ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600&display=swap');
     
+    /* RESET GENERAL */
     .stApp { background-color: #0d1117; font-family: 'Inter', sans-serif; }
 
-    /* VENTANA MAC */
-    .mac-window {
-        background-color: #1a1b26;
+    /* CONTENEDOR TIPO VENTANA */
+    .terminal-window {
+        background-color: #1e1e1e;
         border-radius: 12px;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+        box-shadow: 0 30px 60px rgba(0,0,0,0.5);
         border: 1px solid #333;
         margin-bottom: 20px;
+        font-family: 'JetBrains Mono', monospace;
         overflow: hidden;
+        animation: slideUp 0.5s ease-out;
     }
 
-    .mac-header {
-        background: #24283b;
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* BARRA SUPERIOR */
+    .terminal-header {
+        background: #252526;
         padding: 12px 15px;
         display: flex;
         align-items: center;
-        border-bottom: 1px solid #16161e;
+        border-bottom: 1px solid #1e1e1e;
     }
 
-    .traffic-lights { display: flex; gap: 8px; margin-right: 15px; }
-    .dot { width: 12px; height: 12px; border-radius: 50%; }
-    .close { background-color: #ff5f56; }
-    .min { background-color: #ffbd2e; }
-    .max { background-color: #27c93f; }
+    .buttons { display: flex; gap: 8px; margin-right: 15px; }
+    .btn { width: 12px; height: 12px; border-radius: 50%; }
+    .close { background: #ff5f56; } .min { background: #ffbd2e; } .max { background: #27c93f; }
 
-    .mac-title {
-        color: #7aa2f7;
-        font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        font-weight: 600;
-        text-align: center;
-        width: 100%;
-        margin-right: 50px;
+    .title {
+        color: #888; font-size: 12px; width: 100%; text-align: center; margin-right: 50px; font-weight: 600;
     }
 
+    /* CUERPO DE LA TERMINAL */
     .terminal-body {
         padding: 20px;
-        color: #a9b1d6;
-        font-family: 'Fira Code', monospace;
-        font-size: 13px;
-        min-height: 400px;
-        max-height: 600px;
+        height: 450px;
         overflow-y: auto;
+        color: #d4d4d4;
+        font-size: 13px;
         line-height: 1.6;
         display: flex;
-        flex-direction: column-reverse; /* Hace que lo nuevo salga arriba siempre */
+        flex-direction: column-reverse; /* Logs nuevos arriba */
+        background: #1e1e1e;
     }
 
-    /* FILAS DE LOG */
-    .log-row {
-        border-bottom: 1px dashed #2f3549;
-        padding: 6px 0;
-        display: flex;
-        align-items: center;
-    }
-    .time-tag { color: #565f89; margin-right: 10px; font-size: 11px; }
-    .success { color: #9ece6a; font-weight: bold; }
-    .error { color: #f7768e; font-weight: bold; }
-    .info { color: #7dcfff; }
-    .warn { color: #e0af68; }
+    /* LINEAS DE LOG */
+    .line { display: flex; align-items: center; border-bottom: 1px dashed #333; padding: 4px 0; }
+    .time { color: #569cd6; margin-right: 10px; font-size: 11px; min-width: 60px; }
     
-    .code-box { 
-        background: #16161e; 
-        border: 1px solid #7aa2f7; 
-        color: #7aa2f7; 
-        padding: 4px 8px; 
-        border-radius: 4px; 
-        font-weight: bold; 
-        margin-left: 10px;
-        box-shadow: 0 0 10px rgba(122, 162, 247, 0.2);
+    /* TIPOS DE MENSAJE */
+    .msg-info { color: #9cdcfe; }
+    .msg-succ { color: #b5cea8; font-weight: bold; }
+    .msg-warn { color: #ce9178; }
+    .msg-sys { color: #6a9955; font-style: italic; }
+    
+    /* DATOS RESALTADOS */
+    .highlight {
+        background: #264f78;
+        color: #fff;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: bold;
+        margin-left: 8px;
+        border: 1px solid #7aa2f7;
     }
 
-    /* INPUTS & UI */
+    /* CURSOR PARPADEANTE */
+    .cursor::after {
+        content: '▋';
+        color: #d4d4d4;
+        animation: blink 1s infinite;
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    /* UI DE STREAMLIT */
     .stTextInput input, .stSelectbox div[data-baseweb="select"] {
-        background-color: #24283b !important;
-        color: #c0caf5 !important;
-        border: 1px solid #414868 !important;
+        background: #252526 !important; color: #fff !important; border: 1px solid #333 !important;
     }
-    div.stButton > button:first-child {
-        background: linear-gradient(90deg, #3d59a1, #7aa2f7);
-        border: none;
-        color: white;
-        font-weight: bold;
+    div.stButton > button {
+        background: #007acc; color: white; border: none; font-weight: bold; transition: 0.2s;
     }
+    div.stButton > button:hover { background: #005f9e; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- CLIENTE API ---
-class MailClient:
+# --- 3. CLASE MAESTRA DE CONEXIÓN ---
+class MailCore:
     def __init__(self):
         self.api = "https://api.mail.tm"
-        self.headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        self.headers = {"Content-Type": "application/json"}
         self.token = None
 
     def get_domains(self):
+        """Obtiene lista de dominios vivos. Retorna lista vacía si falla."""
         try:
-            r = requests.get(f"{self.api}/domains", timeout=5)
+            r = requests.get(f"{self.api}/domains", timeout=4)
             if r.status_code == 200:
                 return [d['domain'] for d in r.json()['hydra:member']]
             return []
         except: return []
 
-    def register_and_login(self, address, password):
-        payload = {"address": address, "password": password}
-        try:
-            requests.post(f"{self.api}/accounts", json=payload, headers=self.headers)
-            # Intentar Login
-            r = requests.post(f"{self.api}/token", json=payload, headers=self.headers)
-            if r.status_code == 200:
-                self.token = r.json()['token']
-                self.headers['Authorization'] = f"Bearer {self.token}"
-                return True, "Conectado"
-            return False, f"Error Login: {r.status_code}"
-        except Exception as e:
-            return False, str(e)
-
-    def fetch_messages(self):
+    def get_messages(self):
+        """Descarga bandeja de entrada"""
         if not self.token: return []
         try:
-            # Pedimos la página 1 de mensajes
             r = requests.get(f"{self.api}/messages?page=1", headers=self.headers)
             if r.status_code == 200:
                 return r.json()['hydra:member']
             return []
         except: return []
 
-    def get_full_content(self, msg_id):
+    def get_content(self, msg_id):
+        """Lee contenido HTML y Texto"""
         if not self.token: return "", ""
         try:
             r = requests.get(f"{self.api}/messages/{msg_id}", headers=self.headers)
             if r.status_code == 200:
-                data = r.json()
-                html = data.get('html', [''])[0] if data.get('html') else ""
-                text = data.get('text', '')
-                return html, text
+                d = r.json()
+                return d.get('html', [''])[0], d.get('text', '')
             return "", ""
         except: return "", ""
 
-# --- LOGICA ---
-def find_secrets(html, text):
+    def connect_smart(self, user, domain, password):
+        """
+        LÓGICA 'AUTO-RECOVER':
+        1. Intenta crear cuenta.
+        2. Si falla (422), intenta login.
+        3. Si login falla (401), crea usuario alternativo automáticamente.
+        """
+        target = f"{user}@{domain}"
+        payload = {"address": target, "password": password}
+
+        # Paso 1: Intentar crear
+        r_create = requests.post(f"{self.api}/accounts", json=payload, headers=self.headers)
+        
+        # Paso 2: Intentar Login si se creó o ya existía
+        if r_create.status_code in [201, 422]:
+            r_token = requests.post(f"{self.api}/token", json=payload, headers=self.headers)
+            
+            if r_token.status_code == 200:
+                self.token = r_token.json()['token']
+                self.headers['Authorization'] = f"Bearer {self.token}"
+                return True, target, "Conexión exitosa."
+            elif r_token.status_code == 401:
+                # AQUÍ ESTÁ LA MAGIA: El usuario existe y la clave está mal.
+                # Generamos uno nuevo.
+                suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
+                new_user = f"{user}_{suffix}"
+                return self.connect_smart(new_user, domain, password)
+        
+        return False, None, f"Error API: {r_create.status_code}"
+
+# --- 4. MOTOR DE ANÁLISIS ---
+def analyze(html, text):
     content = (html or "") + " " + (text or "")
-    if "hogar" in content.lower() or "household" in content.lower() or "update" in content.lower():
-        if match := re.search(r'https://www\.(netflix|disneyplus)\.com/[^\s"\'<>]+', content):
-            return match.group(0), "LINK 🏠"
     
-    # Busca cualquier número de 4 a 6 dígitos
+    # Links Hogar
+    if "hogar" in content.lower() or "household" in content.lower() or "update" in content.lower():
+        match = re.search(r'https://www\.(netflix|disneyplus)\.com/[^\s"\'<>]+', content)
+        if match: return match.group(0), "LINK 🏠"
+
+    # Códigos 4-6 dígitos
     codes = re.findall(r'\b\d{4,6}\b', content)
     for c in codes:
         if c not in ["2023", "2024", "2025", "2026"]:
             return c, "CÓDIGO 🔢"
     return None, None
 
-# --- ESTADO ---
-if 'client' not in st.session_state: st.session_state.client = MailClient()
-if 'run' not in st.session_state: st.session_state.run = False
+# --- 5. GESTIÓN DE ESTADO ---
+if 'core' not in st.session_state: st.session_state.core = MailCore()
+if 'active' not in st.session_state: st.session_state.active = False
 if 'logs' not in st.session_state: st.session_state.logs = []
 if 'processed' not in st.session_state: st.session_state.processed = []
-if 'msg_count' not in st.session_state: st.session_state.msg_count = 0
+if 'current_email' not in st.session_state: st.session_state.current_email = ""
 
-# Carga de dominios
-if 'domain_list' not in st.session_state:
-    doms = st.session_state.client.get_domains()
-    st.session_state.domain_list = doms if doms else ["Error API"]
+# Cache de dominios al iniciar
+if 'dom_cache' not in st.session_state:
+    with st.spinner("Inicializando Kernel..."):
+        doms = st.session_state.core.get_domains()
+        st.session_state.dom_cache = doms if doms else ["Error de Red"]
 
-def log(msg, type="info"):
+def log(msg, type="msg-info"):
     t = datetime.now().strftime("%H:%M:%S")
-    st.session_state.logs.insert(0, {"t": t, "m": msg, "type": type})
+    st.session_state.logs.insert(0, {"t": t, "m": msg, "c": type})
 
-# --- UI ---
+# --- 6. INTERFAZ DE USUARIO ---
+
+# SIDEBAR
 with st.sidebar:
-    st.title("🖥️ CONFIG")
-    st.session_state.u_in = st.text_input("Usuario", placeholder="netflix")
+    st.header("⚙️ CONFIGURACIÓN")
     
-    # Auto-selección virgilian
-    d_idx = 0
-    if "virgilian.com" in st.session_state.domain_list:
-        d_idx = st.session_state.domain_list.index("virgilian.com")
-    st.session_state.d_in = st.selectbox("Dominio", st.session_state.domain_list, index=d_idx)
+    # Usuario Base
+    u_base = st.text_input("Usuario Base", value="cine")
     
-    # Pass
-    if 'pass' not in st.session_state:
-        st.session_state.pass_val = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
-    st.session_state.p_in = st.text_input("Pass", value=st.session_state.pass_val, type="password")
+    # Dominio
+    try:
+        idx = st.session_state.dom_cache.index("virgilian.com")
+    except:
+        idx = 0
+    dom_sel = st.selectbox("Dominio", st.session_state.dom_cache, index=idx)
     
-    if st.button("LIMPIAR"):
-        st.session_state.logs = []
-        st.session_state.processed = []
-        st.rerun()
-
-# --- HEADER Y BOTONES ---
-c1, c2 = st.columns([3, 1])
-with c1:
-    st.markdown(f"### 🍏 Terminal Pro | Bandeja: **{st.session_state.msg_count}** msgs")
-with c2:
-    if st.session_state.run:
-        if st.button("DETENER", type="primary", use_container_width=True):
-            st.session_state.run = False
-            st.rerun()
-    else:
-        if st.button("INICIAR", type="primary", use_container_width=True):
-            full = f"{st.session_state.u_in}@{st.session_state.d_in}"
-            ok, msg = st.session_state.client.register_and_login(full, st.session_state.p_in)
+    # Password
+    pwd = st.text_input("Password", value="123456", type="password")
+    
+    st.markdown("---")
+    
+    c1, c2 = st.columns(2)
+    if c1.button("INICIAR"):
+        if "Error" in dom_sel:
+            st.error("Sin conexión a API")
+        else:
+            ok, final_email, msg = st.session_state.core.connect_smart(u_base, dom_sel, pwd)
             if ok:
-                st.session_state.run = True
-                log(f"Conectado a {full}", "success")
+                st.session_state.active = True
+                st.session_state.current_email = final_email
+                st.session_state.logs = [] # Limpiar logs anteriores
+                log(f"Sesión iniciada: {final_email}", "msg-succ")
+                log("Sistema de evasión de colisiones: ACTIVO", "msg-sys")
                 st.rerun()
             else:
                 st.error(msg)
+                
+    if c2.button("DETENER"):
+        st.session_state.active = False
+        log("Sesión finalizada.", "msg-warn")
+        st.rerun()
 
-# --- CONTENEDOR DE TERMINAL (PLACEHOLDER) ---
-# Esto es vital: creamos un espacio vacío que llenaremos dinámicamente
-terminal_placeholder = st.empty()
+    if st.button("LIMPIAR LOGS", type="primary"):
+        st.session_state.logs = []
+        st.rerun()
 
-def render_terminal():
-    log_html = ""
-    for l in st.session_state.logs:
-        css = l['type']
-        msg = l['m']
-        if "CÓDIGO" in msg or "LINK" in msg:
-            parts = msg.split(": ")
-            if len(parts) > 1: msg = f"{parts[0]}: <span class='code-box'>{parts[1]}</span>"
-        log_html += f"<div class='log-row'><span class='time-tag'>[{l['t']}]</span> <span class='{css}'>{msg}</span></div>"
+# PANEL PRINCIPAL
+st.markdown(f"### 🖥️ TERMINAL OPS | ESTADO: {'🟢 ONLINE' if st.session_state.active else '🔴 OFFLINE'}")
 
-    terminal_placeholder.markdown(f"""
-    <div class="mac-window">
-        <div class="mac-header">
-            <div class="traffic-lights">
-                <div class="dot close"></div>
-                <div class="dot min"></div>
-                <div class="dot max"></div>
-            </div>
-            <div class="mac-title">root @ mail-server — 80x24</div>
+# Renderizar Terminal
+log_html = ""
+# Agregar linea cursor
+if st.session_state.active:
+    log_html += f"<div class='line'><span class='time'>Now</span> <span class='msg-info cursor'>Escaneando...</span></div>"
+
+for l in st.session_state.logs:
+    msg_txt = l['m']
+    # Resaltado automático
+    if "CÓDIGO" in msg_txt or "LINK" in msg_txt:
+        parts = msg_txt.split(": ")
+        if len(parts) > 1:
+            msg_txt = f"{parts[0]}: <span class='highlight'>{parts[1]}</span>"
+            
+    log_html += f"<div class='line'><span class='time'>[{l['t']}]</span> <span class='{l['c']}'>{msg_txt}</span></div>"
+
+st.markdown(f"""
+<div class="terminal-window">
+    <div class="terminal-header">
+        <div class="buttons">
+            <div class="btn close"></div>
+            <div class="btn min"></div>
+            <div class="btn max"></div>
         </div>
-        <div class="terminal-body">
-            {log_html}
-        </div>
+        <div class="title">root @ {st.session_state.current_email if st.session_state.active else 'localhost'} — zsh</div>
     </div>
-    """, unsafe_allow_html=True)
+    <div class="terminal-body">
+        {log_html}
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
-# Renderizar estado inicial
-render_terminal()
-
-# --- LOOP PRINCIPAL ---
-if st.session_state.run:
-    # 1. Obtener mensajes
-    msgs = st.session_state.client.fetch_messages()
-    st.session_state.msg_count = len(msgs) # Actualizar contador visual
+# --- 7. BUCLE DE FONDO ---
+if st.session_state.active:
+    msgs = st.session_state.core.get_messages()
     
     if msgs:
         for m in msgs:
             if m['id'] not in st.session_state.processed:
-                sender = m['from']['address']
-                subj = m['subject']
+                # Nuevo Email
+                frm = m['from']['address']
+                sub = m['subject']
+                log(f"Entrante: {frm} | {sub}", "msg-info")
                 
-                # AVISAR QUE LLEGÓ ALGO
-                log(f"📨 Llegó correo de: {sender}", "info")
-                render_terminal() # Actualizar pantalla YA
-                
-                # LEER CONTENIDO
-                html, text = st.session_state.client.get_full_content(m['id'])
-                dato, tipo = find_secrets(html, text)
+                # Análisis Profundo
+                h, t = st.session_state.core.get_content(m['id'])
+                dato, tipo = analyze(h, t)
                 
                 if dato:
-                    log(f"🔥 {tipo}: {dato}", "success")
-                    st.toast(f"Clave: {dato}", icon="🔥")
+                    log(f"¡INTERCEPTADO! {tipo}: {dato}", "msg-succ")
+                    # Sonido visual (Toast)
+                    st.toast(f"CLAVE: {dato}", icon="🔥")
                 else:
-                    log(f"Leído: {subj} (Sin códigos)", "warn")
+                    log("Contenido analizado. Sin claves.", "msg-sys")
                 
                 st.session_state.processed.append(m['id'])
-                render_terminal()
-    
-    # 2. Latido visual (para saber que no está congelado)
-    # time.sleep(4)
-    # st.rerun()
-    
-    # TRUCO PRO: Usamos sleep y rerun para bucle continuo
-    time.sleep(3)
-    st.rerun()
