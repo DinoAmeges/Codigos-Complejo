@@ -9,7 +9,7 @@ from datetime import datetime
 
 # --- 1. CONFIGURACIÓN DEL SISTEMA ---
 st.set_page_config(
-    page_title="RoyPlay Commander v19",
+    page_title="Codigos - Complejo Alpha",
     page_icon="💠",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -234,7 +234,7 @@ def log(msg, type="c-dim"):
 with st.sidebar:
     st.markdown('<div class="logo-box">', unsafe_allow_html=True)
     logo_path = "logo.png"
-    if not os.path.exists(logo_path): logo_path = "logo.jpg"
+    if not os.path.exists(logo_path): logo_path = "Logo.jpg"
     
     if os.path.exists(logo_path):
         st.image(logo_path)
@@ -254,7 +254,7 @@ with st.sidebar:
 
 st.markdown("""
 <div style="margin-bottom:20px; border-bottom:1px solid #333; padding-bottom:10px;">
-    <span style="font-size:24px; font-weight:bold; color:#fff;">ROYPLAY</span>
+    <span style="font-size:24px; font-weight:bold; color:#fff;">CODIGOS STREAMING - COMPLEJO ALPHA</span>
     <span style="font-size:24px; font-weight:bold; color:#00f3ff;">COMMANDER</span>
 </div>
 """, unsafe_allow_html=True)
@@ -297,7 +297,7 @@ with btn3:
         st.rerun()
 
 # CONSOLA
-status_txt = "ESCUCHANDO PUERTO 993..." if st.session_state.active else "ESPERANDO COMANDO"
+status_txt = "ESCUCHANDO..." if st.session_state.active else "ESPERANDO COMANDO"
 status_col = "#00ff9d" if st.session_state.active else "#555"
 
 log_html = ""
