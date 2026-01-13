@@ -8,193 +8,174 @@ from datetime import datetime
 
 # --- 1. CONFIGURACIÓN DEL SISTEMA ---
 st.set_page_config(
-    page_title="RoyPlay HUD v14",
-    page_icon="⚡",
+    page_title="RoyPlay NEON v15",
+    page_icon="💎",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- 2. CSS "AURORA HUD" (DISEÑO SUPREMO) ---
+# --- 2. CSS "NEON GLASS" (DISEÑO SUPREMO) ---
 st.markdown("""
     <style>
-    /* IMPORTAR FUENTES FUTURISTAS */
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Fira+Code:wght@400;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap');
     
     :root {
-        --primary: #00f3ff;
-        --secondary: #bc13fe;
-        --bg-dark: #020204;
-        --panel-bg: rgba(10, 10, 14, 0.85);
-        --success: #0aff68;
-        --danger: #ff003c;
+        --glass: rgba(255, 255, 255, 0.05);
+        --border: rgba(255, 255, 255, 0.1);
+        --primary: #00f2ea;
+        --secondary: #ff0050;
+        --bg-deep: #050510;
     }
 
-    /* --- FONDO CIBERNÉTICO --- */
+    /* --- FONDO ANIMADO --- */
     .stApp {
-        background-color: var(--bg-dark);
+        background-color: var(--bg-deep);
         background-image: 
-            linear-gradient(rgba(0, 243, 255, 0.05) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 243, 255, 0.05) 1px, transparent 1px);
-        background-size: 40px 40px;
-        background-position: center top;
-        font-family: 'Fira Code', monospace;
-    }
-    
-    /* Efecto Viñeta Oscura */
-    .stApp::before {
-        content: "";
-        position: absolute;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: radial-gradient(circle at 50% 50%, transparent 20%, #000 90%);
-        pointer-events: none;
-        z-index: 0;
+            radial-gradient(at 0% 0%, rgba(118, 75, 255, 0.15) 0px, transparent 50%),
+            radial-gradient(at 100% 100%, rgba(0, 242, 234, 0.15) 0px, transparent 50%);
+        font-family: 'Outfit', sans-serif;
     }
 
-    /* --- SIDEBAR TECH --- */
+    /* --- SIDEBAR DE LUJO --- */
     section[data-testid="stSidebar"] {
-        background-color: #050505;
-        border-right: 1px solid #1f1f1f;
-        box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+        background-color: rgba(5, 5, 16, 0.8);
+        backdrop-filter: blur(20px);
+        border-right: 1px solid var(--border);
     }
 
-    /* --- INPUTS ESTILIZADOS --- */
+    /* --- MARCO DEL LOGO --- */
+    .logo-container {
+        display: flex; justify-content: center; margin-bottom: 20px;
+    }
+    .logo-glow {
+        padding: 5px;
+        background: linear-gradient(45deg, var(--primary), #764bff);
+        border-radius: 15px;
+        box-shadow: 0 0 30px rgba(0, 242, 234, 0.2);
+    }
+    .logo-img {
+        border-radius: 12px; background: #000; display: block; width: 100%;
+    }
+
+    /* --- INPUTS FLOTANTES --- */
     .stTextInput input, .stSelectbox div[data-baseweb="select"] {
-        background: #0a0a0a !important;
-        color: var(--primary) !important;
-        border: 1px solid #333 !important;
-        border-radius: 4px !important;
-        font-family: 'Fira Code', monospace !important;
-        box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        background: var(--glass) !important;
+        border: 1px solid var(--border) !important;
+        color: #fff !important;
+        border-radius: 10px !important;
+        backdrop-filter: blur(10px);
         transition: 0.3s;
     }
     .stTextInput input:focus, .stSelectbox div[data-baseweb="select"]:focus-within {
         border-color: var(--primary) !important;
-        box-shadow: 0 0 15px rgba(0, 243, 255, 0.2), inset 0 0 10px rgba(0,0,0,0.8);
+        box-shadow: 0 0 15px rgba(0, 242, 234, 0.3);
+        transform: scale(1.02);
     }
 
-    /* --- BOTONES NEÓN --- */
+    /* --- BOTONES HOLOGRÁFICOS --- */
     div.stButton > button {
-        background: transparent;
-        border: 1px solid var(--primary);
-        color: var(--primary);
-        font-family: 'Orbitron', sans-serif;
+        background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
+        border: 1px solid var(--border);
+        color: #fff;
+        font-weight: 700;
+        letter-spacing: 1px;
+        border-radius: 8px;
+        transition: all 0.4s;
         text-transform: uppercase;
-        letter-spacing: 2px;
-        border-radius: 0px;
-        transition: all 0.2s;
-        position: relative;
-        overflow: hidden;
     }
     div.stButton > button:hover {
         background: var(--primary);
         color: #000;
-        box-shadow: 0 0 20px var(--primary);
-        font-weight: 900;
+        box-shadow: 0 0 25px var(--primary);
+        border-color: var(--primary);
     }
+    
     /* Botón Detener (Rojo) */
-    div.stButton > button:nth-child(1) {
-        /* Streamlit no deja seleccionar por nth-child fiable, así que usamos el estilo general para todos */
-        /* y confiamos en la lógica visual */
+    div.stButton > button:nth-of-type(1):hover {
+        /* Nota: Streamlit aplica estilos en orden, confiamos en la posición */
     }
 
-    /* --- LOGO FRAME --- */
-    .logo-frame {
-        border: 1px solid #333;
-        padding: 10px;
-        background: #000;
-        text-align: center;
-        margin-bottom: 20px;
+    /* --- TERMINAL DE VIDRIO --- */
+    .glass-terminal {
+        background: rgba(10, 10, 20, 0.6);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        backdrop-filter: blur(12px);
+        overflow: hidden;
+        margin-top: 20px;
         position: relative;
-    }
-    .logo-frame::before {
-        content: ""; position: absolute; top: -1px; left: -1px; width: 10px; height: 10px;
-        border-top: 2px solid var(--primary); border-left: 2px solid var(--primary);
-    }
-    .logo-frame::after {
-        content: ""; position: absolute; bottom: -1px; right: -1px; width: 10px; height: 10px;
-        border-bottom: 2px solid var(--primary); border-right: 2px solid var(--primary);
     }
 
-    /* --- TERMINAL HUD --- */
-    .hud-container {
-        border: 1px solid #333;
-        background: var(--panel-bg);
-        padding: 2px;
-        position: relative;
-        margin-bottom: 20px;
-        backdrop-filter: blur(5px);
+    /* HEADER TERMINAL */
+    .glass-header {
+        background: rgba(255,255,255,0.03);
+        padding: 15px 20px;
+        display: flex; justify-content: space-between; align-items: center;
+        border-bottom: 1px solid var(--border);
     }
-    
-    /* Header Terminal */
-    .hud-header {
-        background: rgba(0, 243, 255, 0.05);
-        padding: 10px 15px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid #333;
-        font-family: 'Orbitron', sans-serif;
-        font-size: 12px;
-        color: var(--primary);
-        text-shadow: 0 0 5px var(--primary);
+    .pulse-dot {
+        width: 10px; height: 10px; border-radius: 50%;
+        background: var(--primary);
+        box-shadow: 0 0 10px var(--primary);
+        animation: pulse 1.5s infinite;
     }
+    @keyframes pulse { 0% { opacity: 0.5; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1.2); } }
     
-    /* Cuerpo Terminal */
-    .hud-body {
+    .status-text { font-family: 'JetBrains Mono'; font-size: 10px; color: var(--primary); letter-spacing: 2px; }
+
+    /* CUERPO TERMINAL */
+    .glass-body {
         height: 500px;
-        overflow-y: auto;
         padding: 20px;
-        font-family: 'Fira Code', monospace;
+        overflow-y: auto;
+        display: flex; flex-direction: column-reverse;
+        font-family: 'JetBrains Mono', monospace;
         font-size: 13px;
-        color: #ddd;
-        display: flex;
-        flex-direction: column-reverse;
-        background: 
-            linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
-            linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-        background-size: 100% 2px, 3px 100%;
         position: relative;
     }
     
-    /* Scrollbar Hacker */
-    .hud-body::-webkit-scrollbar { width: 8px; }
-    .hud-body::-webkit-scrollbar-track { background: #000; }
-    .hud-body::-webkit-scrollbar-thumb { background: #333; border: 1px solid var(--primary); }
+    /* EFECTO SCANLINE (LÍNEA DE LUZ QUE BAJA) */
+    .glass-body::after {
+        content: " ";
+        display: block;
+        position: absolute;
+        top: 0; left: 0; bottom: 0; right: 0;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+        z-index: 2;
+        background-size: 100% 2px, 3px 100%;
+        pointer-events: none;
+    }
 
     /* LOGS */
-    .log-entry {
-        border-left: 2px solid #333;
-        padding-left: 10px;
-        margin-bottom: 5px;
-        display: flex;
-        align-items: center;
-        transition: border-color 0.3s;
+    .log-item {
+        padding: 8px 12px;
+        margin-bottom: 6px;
+        border-radius: 6px;
+        background: rgba(255,255,255,0.02);
+        border-left: 2px solid transparent;
+        display: flex; align-items: center;
+        transition: transform 0.2s;
     }
-    .log-entry:hover { border-left-color: var(--primary); background: rgba(0, 243, 255, 0.05); }
+    .log-item:hover { transform: translateX(5px); background: rgba(255,255,255,0.05); }
     
-    .ts { color: #555; font-size: 10px; margin-right: 10px; min-width: 60px; }
+    .t-stamp { color: #666; font-size: 10px; margin-right: 15px; min-width: 60px; }
     
-    .c-info { color: #888; }
-    .c-succ { color: var(--success); text-shadow: 0 0 5px var(--success); }
-    .c-warn { color: #ffbd2e; }
-    .c-sys { color: var(--primary); font-style: italic; }
+    /* COLORES DE LOG */
+    .l-info { border-left-color: #764bff; color: #a5b4fc; }
+    .l-succ { border-left-color: var(--primary); color: #fff; text-shadow: 0 0 10px var(--primary); font-weight: bold; background: rgba(0, 242, 234, 0.05); }
+    .l-warn { border-left-color: #ffbd2e; color: #fde047; }
+    .l-sys { border-left-color: #333; color: #666; font-style: italic; }
 
-    /* DECORACIÓN CÓDIGO */
-    .glitch-box {
-        background: rgba(0, 255, 100, 0.1);
-        border: 1px solid var(--success);
-        color: var(--success);
-        padding: 2px 8px;
-        font-weight: bold;
-        margin-left: 8px;
-        font-family: 'Orbitron';
-        letter-spacing: 1px;
+    /* DATA BADGE */
+    .data-badge {
+        background: var(--primary); color: #000;
+        padding: 2px 8px; border-radius: 4px; font-weight: 800; margin-left: 10px;
     }
-
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. LÓGICA DEL MOTOR (ROBUSTA) ---
+# --- 3. LÓGICA (MOTOR v12 STABLE) ---
 class MailCore:
     def __init__(self):
         self.api = "https://api.mail.tm"
@@ -251,7 +232,7 @@ def analyze(html, text):
         if match: return match.group(0), "LINK 🏠"
     codes = re.findall(r'\b\d{4,6}\b', content)
     for c in codes:
-        if c not in ["2023", "2024", "2025", "2026"]: return c, "CODE 🔢"
+        if c not in ["2023", "2024", "2025", "2026"]: return c, "CÓDIGO 🔢"
     return None, None
 
 # --- 5. STATE ---
@@ -264,34 +245,36 @@ if 'dom_cache' not in st.session_state:
     doms = st.session_state.core.get_domains()
     st.session_state.dom_cache = doms if doms else ["OFFLINE"]
 
-def log(msg, type="c-info"):
+def log(msg, type="l-info"):
     t = datetime.now().strftime("%H:%M:%S")
     st.session_state.logs.insert(0, {"t": t, "m": msg, "c": type})
 
 # --- 6. UI LAYOUT ---
 
-# SIDEBAR
 with st.sidebar:
-    # Logo Frame
-    st.markdown('<div class="logo-frame">', unsafe_allow_html=True)
-    # URL de imagen que parece un logo táctico
-    default_logo = "https://cdn-icons-png.flaticon.com/512/1036/1036066.png"
-    logo_in = st.text_input("URL LOGO", value=default_logo)
-    if logo_in: st.image(logo_in, use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    st.markdown("### ⚙️ SYSTEM CONTROL")
-    u_base = st.text_input("TARGET USER", value="cine")
+    # --- LOGO AREA ---
+    logo_url = st.text_input("URL LOGO (Opcional)", value="https://cdn-icons-png.flaticon.com/512/3655/3655589.png")
+    if logo_url:
+        st.markdown(f"""
+        <div class="logo-container">
+            <div class="logo-glow">
+                <img src="{logo_url}" class="logo-img">
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("### 💠 SYSTEM CONTROL")
+    u_base = st.text_input("TARGET ALIAS", value="cine")
     
     try: idx = st.session_state.dom_cache.index("virgilian.com")
     except: idx = 0
-    dom_sel = st.selectbox("NETWORK NODE", st.session_state.dom_cache, index=idx)
+    dom_sel = st.selectbox("SECURE NODE", st.session_state.dom_cache, index=idx)
     
-    pwd = st.text_input("ACCESS KEY", value="123456", type="password")
+    pwd = st.text_input("AUTH KEY", value="123456", type="password")
     
     st.markdown("---")
     
-    if st.button("INITIALIZE"):
+    if st.button("🚀 INICIAR ENLACE"):
         if "OFFLINE" in dom_sel: st.error("NETWORK ERROR")
         else:
             ok, final_email, msg = st.session_state.core.connect_smart(u_base, dom_sel, pwd)
@@ -299,51 +282,51 @@ with st.sidebar:
                 st.session_state.active = True
                 st.session_state.current_email = final_email
                 st.session_state.logs = []
-                log(f"UPLINK SECURE: {final_email}", "c-sys")
+                log(f"ENLACE SEGURO: {final_email}", "l-sys")
                 st.rerun()
             else:
                 st.error(msg)
                 
-    if st.button("TERMINATE"):
+    if st.button("⛔ CORTAR SEÑAL"):
         st.session_state.active = False
-        log("CONNECTION CLOSED", "c-warn")
+        log("DESCONECTADO", "l-warn")
         st.rerun()
         
-    if st.button("FLUSH LOGS"):
+    if st.button("🧹 LIMPIAR"):
         st.session_state.logs = []
         st.rerun()
 
-# MAIN AREA
-status_text = f"// TARGET: {st.session_state.current_email}" if st.session_state.active else "// STANDBY MODE"
-status_color = "#0aff68" if st.session_state.active else "#ff003c"
+# MAIN PANEL
+status_dot = "pulse-dot" if st.session_state.active else ""
+status_txt = f"MONITOREANDO: {st.session_state.current_email}" if st.session_state.active else "ESPERANDO CONEXIÓN..."
 
 st.markdown(f"""
-<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding-bottom:10px; margin-bottom:20px;">
-    <div style="font-family:'Orbitron'; font-size:24px; color:#fff;">ROYPLAY <span style="color:var(--primary)">V14</span></div>
-    <div style="font-family:'Fira Code'; font-size:12px; color:{status_color}; border:1px solid {status_color}; padding:5px 10px;">{status_text}</div>
+<div style="font-family:'Orbitron'; font-size:30px; font-weight:900; color:#fff; text-shadow:0 0 20px rgba(255,255,255,0.5); margin-bottom:10px;">
+    ROYPLAY <span style="color:var(--primary)">PRO</span>
 </div>
 """, unsafe_allow_html=True)
 
-# LOG RENDERER
+# LOGS RENDER
 log_html = ""
 if st.session_state.active:
-    log_html += f"<div class='log-entry'><span class='ts'>LIVE</span> <span class='c-sys'>Escaneando frecuencias IMAP en puerto 993...</span></div>"
+    log_html += f"<div class='log-item l-info'><span class='t-stamp'>LIVE</span>Escaneando red en tiempo real...</div>"
 
 for l in st.session_state.logs:
     msg_txt = l['m']
-    if "CODE" in msg_txt or "LINK" in msg_txt:
+    if "CÓDIGO" in msg_txt or "LINK" in msg_txt:
         p = msg_txt.split(": ")
-        if len(p)>1: msg_txt = f"{p[0]}: <span class='glitch-box'>{p[1]}</span>"
+        if len(p)>1: msg_txt = f"{p[0]}: <span class='data-badge'>{p[1]}</span>"
     
-    log_html += f"<div class='log-entry'><span class='ts'>{l['t']}</span> <span class='{l['c']}'>{msg_txt}</span></div>"
+    log_html += f"<div class='log-item {l['c']}'><span class='t-stamp'>{l['t']}</span>{msg_txt}</div>"
 
 st.markdown(f"""
-<div class="hud-container">
-    <div class="hud-header">
-        <span>CONSOLE OUTPUT</span>
-        <span>SECURE CONNECTION</span>
+<div class="glass-terminal">
+    <div class="glass-header">
+        <div class="{status_dot}"></div>
+        <div class="status-text">{status_txt}</div>
+        <div style="color:#555">v15.0</div>
     </div>
-    <div class="hud-body">
+    <div class="glass-body">
         {log_html}
     </div>
 </div>
@@ -357,14 +340,14 @@ if st.session_state.active:
             if m['id'] not in st.session_state.processed:
                 frm = m['from']['address']
                 sub = m['subject']
-                log(f"PACKET: {frm} | {sub}", "c-info")
+                log(f"Recibido: {frm} | {sub}", "l-info")
                 h, t = st.session_state.core.get_content(m['id'])
                 dato, tipo = analyze(h, t)
                 if dato:
-                    log(f"DECRYPTED! {tipo}: {dato}", "c-succ")
-                    st.toast(f"DATA: {dato}", icon="🟢")
+                    log(f"¡ENCONTRADO! {tipo}: {dato}", "l-succ")
+                    st.toast(f"DATA: {dato}", icon="💎")
                 else:
-                    log("NO DATA FOUND", "c-info")
+                    log("Mensaje procesado (Sin datos)", "l-sys")
                 st.session_state.processed.append(m['id'])
                 time.sleep(0.1)
                 st.rerun()
