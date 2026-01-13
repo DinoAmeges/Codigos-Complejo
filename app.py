@@ -8,105 +8,171 @@ from datetime import datetime
 
 # --- 1. CONFIGURACIÓN DEL SISTEMA ---
 st.set_page_config(
-    page_title="Terminal Ops v12",
-    page_icon="",
+    page_title="RoyPlay Cyber-Exec v13",
+    page_icon="💠",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- 2. ESTÉTICA "MAC OS PRO" ---
+# --- 2. CSS "CYBER-EXECUTIVE" (DISEÑO PREMIUM) ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap');
     
-    /* RESET GENERAL */
-    .stApp { background-color: #0d1117; font-family: 'Inter', sans-serif; }
+    /* --- FONDO Y BASE --- */
+    .stApp {
+        background-color: #050509;
+        background-image: 
+            radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.1) 0px, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.1) 0px, transparent 50%);
+        font-family: 'Rajdhani', sans-serif;
+    }
 
-    /* CONTENEDOR TIPO VENTANA */
-    .terminal-window {
-        background-color: #1e1e1e;
+    /* --- LOGO AREA --- */
+    .logo-container {
+        text-align: center;
+        margin-bottom: 20px;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.03);
         border-radius: 12px;
-        box-shadow: 0 30px 60px rgba(0,0,0,0.5);
-        border: 1px solid #333;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+    }
+    .logo-img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 0 20px rgba(0, 198, 255, 0.2);
+    }
+
+    /* --- SIDEBAR PERSONALIZADO --- */
+    section[data-testid="stSidebar"] {
+        background-color: #0a0a0c;
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    /* INPUTS ESTILIZADOS */
+    .stTextInput input, .stSelectbox div[data-baseweb="select"] {
+        background: rgba(0, 0, 0, 0.5) !important;
+        color: #e2e8f0 !important;
+        border: 1px solid #334155 !important;
+        border-radius: 8px !important;
+        font-family: 'JetBrains Mono', monospace !important;
+        transition: all 0.3s ease;
+    }
+    .stTextInput input:focus, .stSelectbox div[data-baseweb="select"]:focus-within {
+        border-color: #38bdf8 !important;
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    }
+
+    /* --- TERMINAL WINDOW (LA JOYA DE LA CORONA) --- */
+    .terminal-window {
+        background: rgba(15, 15, 20, 0.85);
+        border-radius: 12px;
+        box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.8);
+        border: 1px solid rgba(56, 189, 248, 0.2);
         margin-bottom: 20px;
         font-family: 'JetBrains Mono', monospace;
         overflow: hidden;
-        animation: slideUp 0.5s ease-out;
+        backdrop-filter: blur(20px);
+        animation: fadeIn 0.8s ease-out;
     }
 
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* BARRA SUPERIOR */
+    /* HEADER TERMINAL */
     .terminal-header {
-        background: #252526;
-        padding: 12px 15px;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 12px 20px;
         display: flex;
         align-items: center;
-        border-bottom: 1px solid #1e1e1e;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
 
-    .buttons { display: flex; gap: 8px; margin-right: 15px; }
-    .btn { width: 12px; height: 12px; border-radius: 50%; }
-    .close { background: #ff5f56; } .min { background: #ffbd2e; } .max { background: #27c93f; }
+    .status-dot {
+        width: 10px; height: 10px; border-radius: 50%; margin-right: 8px;
+    }
+    .status-online {
+        background-color: #00ff9d;
+        box-shadow: 0 0 10px #00ff9d;
+        animation: pulse 2s infinite;
+    }
+    .status-offline { background-color: #ff4757; }
 
-    .title {
-        color: #888; font-size: 12px; width: 100%; text-align: center; margin-right: 50px; font-weight: 600;
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+    .terminal-title {
+        color: #94a3b8; font-size: 12px; letter-spacing: 1px; flex-grow: 1; text-align: center; text-transform: uppercase;
     }
 
-    /* CUERPO DE LA TERMINAL */
+    /* CUERPO TERMINAL */
     .terminal-body {
-        padding: 20px;
-        height: 450px;
+        padding: 25px;
+        height: 500px;
         overflow-y: auto;
-        color: #d4d4d4;
+        color: #e2e8f0;
         font-size: 13px;
-        line-height: 1.6;
+        line-height: 1.8;
         display: flex;
-        flex-direction: column-reverse; /* Logs nuevos arriba */
-        background: #1e1e1e;
+        flex-direction: column-reverse;
+        
+        /* Scrollbar fina */
+        scrollbar-width: thin;
+        scrollbar-color: #334155 transparent;
     }
+    
+    /* LOGS */
+    .log-row {
+        display: flex; align-items: flex-start; border-bottom: 1px dashed rgba(255,255,255,0.05); padding: 5px 0;
+    }
+    .log-time { color: #64748b; margin-right: 15px; font-size: 11px; min-width: 65px; }
+    
+    /* COLORES DE TEXTO */
+    .txt-info { color: #38bdf8; } /* Cyan */
+    .txt-succ { color: #4ade80; font-weight: bold; text-shadow: 0 0 15px rgba(74, 222, 128, 0.4); } /* Green */
+    .txt-warn { color: #fbbf24; } /* Amber */
+    .txt-err { color: #f87171; } /* Red */
+    .txt-sys { color: #94a3b8; font-style: italic; } /* Slate */
 
-    /* LINEAS DE LOG */
-    .line { display: flex; align-items: center; border-bottom: 1px dashed #333; padding: 4px 0; }
-    .time { color: #569cd6; margin-right: 10px; font-size: 11px; min-width: 60px; }
-    
-    /* TIPOS DE MENSAJE */
-    .msg-info { color: #9cdcfe; }
-    .msg-succ { color: #b5cea8; font-weight: bold; }
-    .msg-warn { color: #ce9178; }
-    .msg-sys { color: #6a9955; font-style: italic; }
-    
-    /* DATOS RESALTADOS */
-    .highlight {
-        background: #264f78;
+    /* CÓDIGO RESALTADO */
+    .secret-badge {
+        background: rgba(56, 189, 248, 0.15);
+        border: 1px solid #38bdf8;
         color: #fff;
-        padding: 2px 6px;
+        padding: 2px 10px;
         border-radius: 4px;
-        font-weight: bold;
-        margin-left: 8px;
-        border: 1px solid #7aa2f7;
+        font-weight: 700;
+        font-size: 14px;
+        margin-left: 10px;
+        box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
     }
 
-    /* CURSOR PARPADEANTE */
-    .cursor::after {
-        content: '▋';
-        color: #d4d4d4;
-        animation: blink 1s infinite;
-    }
-    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-
-    /* UI DE STREAMLIT */
-    .stTextInput input, .stSelectbox div[data-baseweb="select"] {
-        background: #252526 !important; color: #fff !important; border: 1px solid #333 !important;
-    }
+    /* BOTONES */
     div.stButton > button {
-        background: #007acc; color: white; border: none; font-weight: bold; transition: 0.2s;
+        width: 100%;
+        border-radius: 8px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border: none;
+        transition: all 0.3s;
+        height: 45px;
     }
-    div.stButton > button:hover { background: #005f9e; }
+    
+    /* Botón Iniciar (Gradiente Azul-Cian) */
+    div.stButton > button:first-child {
+        background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+        color: white;
+    }
+    div.stButton > button:first-child:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.6);
+    }
+
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. CLASE MAESTRA DE CONEXIÓN ---
+# --- 3. CLASE MAESTRA DE CONEXIÓN (Mismo motor v12) ---
 class MailCore:
     def __init__(self):
         self.api = "https://api.mail.tm"
@@ -114,7 +180,6 @@ class MailCore:
         self.token = None
 
     def get_domains(self):
-        """Obtiene lista de dominios vivos. Retorna lista vacía si falla."""
         try:
             r = requests.get(f"{self.api}/domains", timeout=4)
             if r.status_code == 200:
@@ -123,7 +188,6 @@ class MailCore:
         except: return []
 
     def get_messages(self):
-        """Descarga bandeja de entrada"""
         if not self.token: return []
         try:
             r = requests.get(f"{self.api}/messages?page=1", headers=self.headers)
@@ -133,7 +197,6 @@ class MailCore:
         except: return []
 
     def get_content(self, msg_id):
-        """Lee contenido HTML y Texto"""
         if not self.token: return "", ""
         try:
             r = requests.get(f"{self.api}/messages/{msg_id}", headers=self.headers)
@@ -144,29 +207,20 @@ class MailCore:
         except: return "", ""
 
     def connect_smart(self, user, domain, password):
-        """
-        LÓGICA 'AUTO-RECOVER':
-        1. Intenta crear cuenta.
-        2. Si falla (422), intenta login.
-        3. Si login falla (401), crea usuario alternativo automáticamente.
-        """
+        # SISTEMA AUTO-RECOVER (Si falla, crea uno nuevo)
         target = f"{user}@{domain}"
         payload = {"address": target, "password": password}
 
-        # Paso 1: Intentar crear
         r_create = requests.post(f"{self.api}/accounts", json=payload, headers=self.headers)
         
-        # Paso 2: Intentar Login si se creó o ya existía
         if r_create.status_code in [201, 422]:
             r_token = requests.post(f"{self.api}/token", json=payload, headers=self.headers)
-            
             if r_token.status_code == 200:
                 self.token = r_token.json()['token']
                 self.headers['Authorization'] = f"Bearer {self.token}"
-                return True, target, "Conexión exitosa."
+                return True, target, "Conectado"
             elif r_token.status_code == 401:
-                # AQUÍ ESTÁ LA MAGIA: El usuario existe y la clave está mal.
-                # Generamos uno nuevo.
+                # OCUPADO -> GENERAR VARIANTE
                 suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
                 new_user = f"{user}_{suffix}"
                 return self.connect_smart(new_user, domain, password)
@@ -177,12 +231,10 @@ class MailCore:
 def analyze(html, text):
     content = (html or "") + " " + (text or "")
     
-    # Links Hogar
     if "hogar" in content.lower() or "household" in content.lower() or "update" in content.lower():
         match = re.search(r'https://www\.(netflix|disneyplus)\.com/[^\s"\'<>]+', content)
         if match: return match.group(0), "LINK 🏠"
 
-    # Códigos 4-6 dígitos
     codes = re.findall(r'\b\d{4,6}\b', content)
     for c in codes:
         if c not in ["2023", "2024", "2025", "2026"]:
@@ -196,90 +248,85 @@ if 'logs' not in st.session_state: st.session_state.logs = []
 if 'processed' not in st.session_state: st.session_state.processed = []
 if 'current_email' not in st.session_state: st.session_state.current_email = ""
 
-# Cache de dominios al iniciar
 if 'dom_cache' not in st.session_state:
-    with st.spinner("Inicializando Kernel..."):
+    with st.spinner("Iniciando Sistemas Criptográficos..."):
         doms = st.session_state.core.get_domains()
-        st.session_state.dom_cache = doms if doms else ["Error de Red"]
+        st.session_state.dom_cache = doms if doms else ["Error Red"]
 
-def log(msg, type="msg-info"):
+def log(msg, type="txt-info"):
     t = datetime.now().strftime("%H:%M:%S")
     st.session_state.logs.insert(0, {"t": t, "m": msg, "c": type})
 
-# --- 6. INTERFAZ DE USUARIO ---
+# --- 6. INTERFAZ ---
 
-# SIDEBAR
+# --- SIDEBAR (CON LOGO) ---
 with st.sidebar:
-    st.header("⚙️ CONFIGURACIÓN")
+    # ZONA DE LOGO
+    st.markdown('<div class="logo-container">', unsafe_allow_html=True)
+    # URL de logo por defecto (Un escudo cybertech) - Puedes cambiar esta URL
+    logo_url = st.text_input("URL del Logo", value="https://cdn-icons-png.flaticon.com/512/2316/2316680.png")
+    if logo_url:
+        st.image(logo_url, use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
     
-    # Usuario Base
+    st.markdown("### ⚙️ CONFIGURACIÓN")
+    
     u_base = st.text_input("Usuario Base", value="cine")
     
-    # Dominio
-    try:
-        idx = st.session_state.dom_cache.index("virgilian.com")
-    except:
-        idx = 0
+    try: idx = st.session_state.dom_cache.index("virgilian.com")
+    except: idx = 0
     dom_sel = st.selectbox("Dominio", st.session_state.dom_cache, index=idx)
     
-    # Password
     pwd = st.text_input("Password", value="123456", type="password")
     
     st.markdown("---")
     
     c1, c2 = st.columns(2)
-    if c1.button("INICIAR"):
-        if "Error" in dom_sel:
-            st.error("Sin conexión a API")
+    if c1.button("▶ INICIAR"):
+        if "Error" in dom_sel: st.error("Sin API")
         else:
             ok, final_email, msg = st.session_state.core.connect_smart(u_base, dom_sel, pwd)
             if ok:
                 st.session_state.active = True
                 st.session_state.current_email = final_email
-                st.session_state.logs = [] # Limpiar logs anteriores
-                log(f"Sesión iniciada: {final_email}", "msg-succ")
-                log("Sistema de evasión de colisiones: ACTIVO", "msg-sys")
+                st.session_state.logs = []
+                log(f"Enlace establecido: {final_email}", "txt-succ")
                 st.rerun()
             else:
                 st.error(msg)
                 
-    if c2.button("DETENER"):
+    if c2.button("⏹ DETENER"):
         st.session_state.active = False
-        log("Sesión finalizada.", "msg-warn")
+        log("Enlace terminado.", "txt-warn")
         st.rerun()
 
-    if st.button("LIMPIAR LOGS", type="primary"):
+    if st.button("🗑️ LIMPIAR PANTALLA"):
         st.session_state.logs = []
         st.rerun()
 
-# PANEL PRINCIPAL
-st.markdown(f"### 🖥️ TERMINAL OPS | ESTADO: {'🟢 ONLINE' if st.session_state.active else '🔴 OFFLINE'}")
+# --- PANEL PRINCIPAL ---
+status_class = "status-online" if st.session_state.active else "status-offline"
+status_text = f"CONECTADO A: {st.session_state.current_email}" if st.session_state.active else "DESCONECTADO - ESPERANDO ORDEN"
 
 # Renderizar Terminal
 log_html = ""
-# Agregar linea cursor
 if st.session_state.active:
-    log_html += f"<div class='line'><span class='time'>Now</span> <span class='msg-info cursor'>Escaneando...</span></div>"
+    log_html += f"<div class='log-row'><span class='log-time'>NOW</span> <span class='txt-info'>Escaneando puerto 993 (IMAP Secure)...</span></div>"
 
 for l in st.session_state.logs:
     msg_txt = l['m']
-    # Resaltado automático
     if "CÓDIGO" in msg_txt or "LINK" in msg_txt:
         parts = msg_txt.split(": ")
         if len(parts) > 1:
-            msg_txt = f"{parts[0]}: <span class='highlight'>{parts[1]}</span>"
+            msg_txt = f"{parts[0]}: <span class='secret-badge'>{parts[1]}</span>"
             
-    log_html += f"<div class='line'><span class='time'>[{l['t']}]</span> <span class='{l['c']}'>{msg_txt}</span></div>"
+    log_html += f"<div class='log-row'><span class='log-time'>[{l['t']}]</span> <span class='{l['c']}'>{msg_txt}</span></div>"
 
 st.markdown(f"""
 <div class="terminal-window">
     <div class="terminal-header">
-        <div class="buttons">
-            <div class="btn close"></div>
-            <div class="btn min"></div>
-            <div class="btn max"></div>
-        </div>
-        <div class="title">root @ {st.session_state.current_email if st.session_state.active else 'localhost'} — zsh</div>
+        <div class="status-dot {status_class}"></div>
+        <div class="terminal-title">{status_text}</div>
     </div>
     <div class="terminal-body">
         {log_html}
@@ -287,31 +334,28 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# --- 7. BUCLE DE FONDO ---
+# --- BUCLE DE FONDO ---
 if st.session_state.active:
     msgs = st.session_state.core.get_messages()
     
     if msgs:
         for m in msgs:
             if m['id'] not in st.session_state.processed:
-                # Nuevo Email
                 frm = m['from']['address']
                 sub = m['subject']
-                log(f"Entrante: {frm} | {sub}", "msg-info")
+                log(f"Paquete entrante: {frm} | {sub}", "txt-info")
                 
-                # Análisis Profundo
                 h, t = st.session_state.core.get_content(m['id'])
                 dato, tipo = analyze(h, t)
                 
                 if dato:
-                    log(f"¡INTERCEPTADO! {tipo}: {dato}", "msg-succ")
-                    # Sonido visual (Toast)
+                    log(f"¡CLAVE DESCIFRADA! {tipo}: {dato}", "txt-succ")
                     st.toast(f"CLAVE: {dato}", icon="🔥")
                 else:
-                    log("Contenido analizado. Sin claves.", "msg-sys")
+                    log("Contenido seguro. Sin claves detectadas.", "txt-sys")
                 
                 st.session_state.processed.append(m['id'])
-                time.sleep(0.1) # Pequeña pausa para efecto de escritura
+                time.sleep(0.1)
                 st.rerun()
     
     time.sleep(3)
