@@ -131,7 +131,7 @@ st.markdown("""
         background-size: 100% 4px;
     }
     
-    /* LOG ROWS (Corregido: sin espacios para evitar renderizado de código) */
+    /* LOG ROWS (Compacto para evitar bugs) */
     .log-row {
         display: flex; padding: 6px 10px; margin-bottom: 4px; border-radius: 4px;
         align-items: center; border-left: 2px solid transparent;
@@ -233,13 +233,18 @@ def log(msg, type="c-dim"):
 # 1. SIDEBAR
 with st.sidebar:
     st.markdown('<div class="logo-box">', unsafe_allow_html=True)
+    # Nombre exacto de tu archivo de logo
     logo_path = "Captura_de_pantalla_2025-12-09_195930-removebg-preview.png"
-    if not os.path.exists(logo_path): logo_path = "Logo.jpg"
+    
+    # Comprobación de seguridad por si el nombre cambia
+    if not os.path.exists(logo_path):
+        if os.path.exists("logo.png"): logo_path = "logo.png"
+        elif os.path.exists("logo.jpg"): logo_path = "logo.jpg"
     
     if os.path.exists(logo_path):
         st.image(logo_path)
     else:
-        st.caption("⚠️ Sube 'logo.png' a la carpeta.")
+        st.caption("⚠️ No se encuentra el archivo de logo.")
     st.markdown('</div>', unsafe_allow_html=True)
     
     st.markdown("### ⚙️ CONFIGURACIÓN")
@@ -255,7 +260,6 @@ with st.sidebar:
 st.markdown("""
 <div style="margin-bottom:20px; border-bottom:1px solid #333; padding-bottom:10px;">
     <span style="font-size:24px; font-weight:bold; color:#fff;">CODIGOS STREAMING - COMPLEJO ALPHA</span>
-    <span style="font-size:24px; font-weight:bold; color:#00f3ff;"></span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -307,7 +311,7 @@ for l in st.session_state.logs:
         p = msg_txt.split(": ")
         if len(p)>1: msg_txt = f"{p[0]}: <span style='background:#00f3ff; color:#000; padding:0 5px; font-weight:bold;'>{p[1]}</span>"
     
-    # Generamos la línea HTML en una sola línea para evitar errores de renderizado
+    # FIX: HTML Compacto para evitar renderizado erróneo
     log_html += f"<div class='log-row {l['c']}'><div class='log-ts'>{l['t']}</div><div>{msg_txt}</div></div>"
 
 st.markdown(f"""
