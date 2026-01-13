@@ -233,7 +233,7 @@ def log(msg, type="c-dim"):
 # 1. SIDEBAR
 with st.sidebar:
     st.markdown('<div class="logo-box">', unsafe_allow_html=True)
-    logo_path = "logo.png"
+    logo_path = "Logo.png"
     if not os.path.exists(logo_path): logo_path = "Logo.jpg"
     
     if os.path.exists(logo_path):
@@ -255,7 +255,7 @@ with st.sidebar:
 st.markdown("""
 <div style="margin-bottom:20px; border-bottom:1px solid #333; padding-bottom:10px;">
     <span style="font-size:24px; font-weight:bold; color:#fff;">CODIGOS STREAMING - COMPLEJO ALPHA</span>
-    <span style="font-size:24px; font-weight:bold; color:#00f3ff;">COMMANDER</span>
+    <span style="font-size:24px; font-weight:bold; color:#00f3ff;"></span>
 </div>
 """, unsafe_allow_html=True)
 
